@@ -1,0 +1,130 @@
+﻿@{
+    ViewBag.Title = "Leave Approval";
+    var pendingRequests = ViewBag.PendingRequests as List<AttendEase.Controllers.LeaveRequestViewModel>;
+}
+
+<head>
+    <script src="~/js/LeaveApproval.js"></script>
+</head>
+
+<div class="p-4 md:p-6" id="pendingRequestsContainer">
+    <h3 class="text-lg font-medium text-gray-900 mb-4">Pending Leave Requests</h3>
+
+    @if (pendingRequests != null && pendingRequests.Count > 0)
+    {
+        // Sort: Emergency (priority 1), Pending (priority 2)
+        var sorted = pendingRequests.OrderBy(r => r.Status == "emergency" ? 1 : 2).ThenBy(r => r.SubmittedOn).ToList();
+        foreach (var request in sorted)
+        {
+            var isEmergency = request.Status == "emergency" || request.Emergency == "yes";
+            var borderClass = isEmergency ? "border-l-red-500 bg-red-50" : "border-l-yellow-500 bg-yellow-50";
+            var statusText = isEmergency ? "Emergency" : "Pending";
+            var statusBadgeClass = isEmergency
+            ? "emergency-badge bg-red-100 text-red-800"
+            : "status-badge bg-yellow-100 text-yellow-800";
+            var leaveTypeDisplay = request.LeaveType switch
+            {
+                "vacation" => "Vacation Leave",
+                "sick" => "Sick Leave",
+                "personal" => "Personal Leave",
+                "emergency" => "Emergency Leave",
+                "maternity" => "Maternity/Paternity Leave",
+                "bereavement" => "Bereavement Leave",
+                _ => request.LeaveType
+            };
+            var duration = (request.EndDate - request.StartDate)?.Days + 1 ?? 1;
+            var requestId = $"request{request.Id}";
+            var rejectionFormId = $"rejectionReason{request.Id}";
+            <div id="@requestId" class="leave-request @borderClass border border-gray-200 rounded-r-md shadow-sm mb-4"
+                 data-priority="@(isEmergency ? 1 : 2)"
+                 data-status="@request.Status"
+                 data-date="@request.StartDate?.ToString("yyyy-MM-dd")">
+                <div class="p-4">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-3">
+                        <div class="flex items-center mb-2 md:mb-0">
+                            <div class="status-icon @(isEmergency ? "bg-red-100" : "bg-yellow-100") mr-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 @(isEmergency ? "text-red-600" : "text-yellow-600")" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                                </svg>
+                            </div>
+                            <h3 class="font-medium text-gray-900">Employee</h3>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            @if (isEmergency)
+                            {
+                                <span class="emergency-badge bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full">Emergency</span>
+                            }
+                            <span class="status-badge bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-0.5 rounded-full">@statusText</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
+                        <div>
+                            <p class="text-xs text-gray-500">Leave Type</p>
+                            <p class="text-sm font-medium">@leaveTypeDisplay</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">Duration</p>
+                            <p class="text-sm font-medium">@duration @(duration == 1 ? "day" : "days")</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">From</p>
+                            <p class="text-sm font-medium">@request.StartDate?.ToString("MMM dd, yyyy")</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500">To</p>
+                            <p class="text-sm font-medium">@request.EndDate?.ToString("MMM dd, yyyy")</p>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <p class="text-xs text-gray-500">Reason</p>
+                        <p class="text-sm">@request.Reason</p>
+                    </div>
+
+                    <form asp-action="Reject" asp-controller="LeaveManagement" method="post" class="mb-3 rejection-reason" id="@rejectionFormId">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@request.Id" />
+                        <p class="text-xs text-gray-500 mb-1">Rejection Reason</p>
+                        <textarea name="rejectionReason" class="w-full border border-gray-300 rounded-md p-2 text-sm" rows="2" placeholder="Enter reason for rejection..."></textarea>
+                        <button type="submit" class="mt-2 bg-red-500 hover:bg-red-600 text-white font-medium py-1.5 px-3 text-sm rounded-md transition-colors">
+                            Submit Rejection
+                        </button>
+                    </form>
+
+                    <div class="action-buttons flex bg-indigo-50 rounded-md overflow-hidden">
+                        <form asp-action="Approve" asp-controller="LeaveManagement" method="post" class="flex-1">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@request.Id" />
+                            <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-1.5 px-3 text-sm transition-colors">
+                                Approve
+                            </button>
+                        </form>
+                        <button type="button" onclick="showRejectionInput('@rejectionFormId')" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-1.5 px-3 text-sm transition-colors">
+                            Reject
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="text-gray-500">No pending leave requests.</div>
+    }
+</div>
+
+<!-- History Section Toggle -->
+<div class="border-t border-gray-200 px-4 md:px-6 py-3">
+    <button id="toggleHistory" class="w-full flex justify-between items-center text-left">
+        <span class="font-medium text-gray-700">Leave History</span>
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 chevron-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+        </svg>
+    </button>
+</div>
+
+<!-- History Section Content -->
+<div id="historySection" class="px-4 md:px-6 pb-6">
+    <!-- History items will be dynamically managed by LeaveApproval.js -->
+</div>

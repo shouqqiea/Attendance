@@ -1,0 +1,86 @@
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+.gradient-bg {
+    background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
+}
+
+.malaysia-accent {
+    color: #41A2F8; /* Malaysian flag blue */
+}
+
+.feature-icon {
+    transition: all 0.3s ease;
+}
+
+.feature-card:hover .feature-icon {
+    transform: scale(1.1);
+}
+
+.leave-request-card {
+    box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.2);
+    transition: all 0.3s ease;
+}
+
+    .leave-request-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 30px -5px rgba(79, 70, 229, 0.3);
+    }
+
+.approval-badge {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.biometric-scan {
+    animation: scan 3s infinite;
+}
+
+@keyframes scan {
+    0% {
+        background-position: 0% 0%;
+    }
+
+    50% {
+        background-position: 0% 100%;
+    }
+
+    100% {
+        background-position: 0% 0%;
+    }
+}
+
+.fingerprint-animation {
+    animation: fingerprint 2s ease-in-out infinite;
+}
+
+@keyframes fingerprint {
+    0% {
+        opacity: 0.7;
+        transform: scale(0.95);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    100% {
+        opacity: 0.7;
+        transform: scale(0.95);
+    }
+}

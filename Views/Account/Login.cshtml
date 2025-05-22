@@ -1,0 +1,177 @@
+﻿@{
+    Layout = null;
+    var emailValue = Context.Request.Method == "POST" ? Context.Request.Form["email"].ToString() : "";
+}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - LetsCheckIn</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="~/css/Tailwind.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+    <script src="~/js/notification.js" asp-append-version="true"></script>
+    <style>
+        @@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .login-gradient {
+            background: linear-gradient(135deg, #a88641, #f2d194);
+        }
+
+        .input-icon {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            left: 0.75rem;
+            color: #6b7280;
+        }
+
+        .input-with-icon {
+            padding-left: 2.5rem;
+        }
+
+        .bg-pattern {
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%234f46e5' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        }
+
+        @@media (max-width: 640px) {
+            .login-card {
+                width: 90%;
+                max-width: 400px;
+            }
+        }
+
+        @@media (min-width: 641px) and (max-width: 768px) {
+            .login-card {
+                width: 80%;
+                max-width: 450px;
+            }
+        }
+
+        @@media (min-width: 769px) {
+            .login-card {
+                width: 100%;
+                max-width: 480px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-pattern bg-gray-50">
+    <div class="min-h-screen flex flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+        <!-- Logo and Brand -->
+        <div class="mb-6 flex items-center">
+            <img src="/images/logo-black-icon.png" alt="Logo" class="h-7 w-7 sm:h-7 sm:w-7" />
+            <h1 class="text-lg sm:text-xl font-bold text-gray-900">Lets<span class="logo-check">Check</span>In</h1>
+            <span class="ml-1 bg-indigo-100 text-indigo-800 text-xs px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-full">HR</span>
+        </div>
+
+        <!-- Login Card -->
+        <div class="login-card w-full bg-white rounded-xl shadow-lg p-6 sm:p-8 border border-gray-200">
+            <div class="flex flex-col items-center mb-6 sm:mb-8">
+                <div class="login-gradient rounded-full w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center mb-3 sm:mb-4 shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 sm:h-9 sm:w-9 text-white" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-900 mb-1 text-center">Sign in to LetsCheckIn</h2>
+                <p class="text-xs sm:text-sm text-gray-500 text-center">Enter your credentials to access your account</p>
+            </div>
+
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <div class="mb-4">
+                    <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded text-sm">
+                        @Html.ValidationSummary(false, "", new { @class = "text-red-700" })
+                    </div>
+                </div>
+            }
+
+            <form asp-action="Login" method="post" class="space-y-4 sm:space-y-5" autocomplete="off">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <div class="relative">
+                        <div class="input-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
+                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
+                            </svg>
+                        </div>
+                        <input type="email" id="email" name="email" value="@emailValue" placeholder="you@example.com" class="input-with-icon form-control w-full px-3 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" required style="padding-left: 2.5rem;">
+                        @Html.ValidationMessage("email", "", new { @class = "text-xs text-red-600 mt-1 block" })
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                        <a href="#" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium">Forgot?</a>
+                    </div>
+                    <div class="relative">
+                        <div class="input-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                        <input type="password" id="password" name="password" placeholder="••••••••" class="input-with-icon form-control w-full px-3 py-2 sm:py-2.5 text-sm sm:text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition" required style="padding-left: 2.5rem;">
+                        @Html.ValidationMessage("password", "", new { @class = "text-xs text-red-600 mt-1 block" })
+                    </div>
+                </div>
+
+                <div class="flex items-center">
+                    <input id="rememberMe" name="rememberMe" type="checkbox" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                    <label for="rememberMe" class="ml-2 block text-sm text-gray-700 select-none">Remember me</label>
+                </div>
+
+                <button type="submit" class="w-full bg-[#a88641] hover:bg-[#916f34] text-white font-semibold py-2 sm:py-2.5 px-4 rounded-lg shadow-sm transition-colors duration-300 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 3a1 1 0 011 1v12a1 1 0 11-2 0V4a1 1 0 011-1zm7.707 3.293a1 1 0 010 1.414L9.414 9H17a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    Sign In
+                </button>
+            </form>
+
+
+            <div class="mt-5 sm:mt-6 pt-4 sm:pt-5 border-t border-gray-200">
+                <p class="text-center text-xs sm:text-sm text-gray-600">
+                    Don't have an account?
+                    <a href="#" class="text-indigo-600 hover:text-indigo-800 font-medium">Contact your administrator</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Security Badge -->
+        <div class="mt-6 sm:mt-8 flex items-center justify-center">
+            <div class="bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-200 flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-500 mr-1.5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                </svg>
+                <span class="text-xs sm:text-sm text-gray-600 font-medium">Secure Login</span>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="mt-4 sm:mt-6 text-center text-xs text-gray-500">
+            <p>© 2023 LetsCheckIn. All rights reserved.</p>
+            <p class="mt-1">Version 2.4.1</p>
+        </div>
+    </div>
+
+    <script>
+        // Adjust input padding on mobile devices
+        function adjustInputPadding() {
+            const isMobile = window.innerWidth < 640;
+            const inputs = document.querySelectorAll('.input-with-icon');
+            inputs.forEach(input => {
+                input.style.paddingLeft = isMobile ? '2.25rem' : '2.5rem';
+            });
+        }
+        document.addEventListener('DOMContentLoaded', adjustInputPadding);
+        window.addEventListener('resize', adjustInputPadding);
+    </script>
+</body>
+</html>

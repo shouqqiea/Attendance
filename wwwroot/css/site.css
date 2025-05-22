@@ -1,0 +1,51 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+.header-gradient {
+    background: linear-gradient(to right, #4f46e5, #6366f1);
+}
+
+.dropdown-menu {
+    transform-origin: top right;
+    transform: scale(0.95);
+    opacity: 0;
+    visibility: hidden;
+    transition: transform 0.1s ease, opacity 0.1s ease, visibility 0.1s;
+}
+
+    .dropdown-menu.active {
+        transform: scale(1);
+        opacity: 1;
+        visibility: visible;
+    }
+
+.sort-options {
+    transform-origin: top right;
+    transform: scale(0.95);
+    opacity: 0;
+    visibility: hidden;
+    transition: transform 0.1s ease, opacity 0.1s ease, visibility 0.1s;
+}
+
+    .sort-options.active {
+        transform: scale(1);
+        opacity: 1;
+        visibility: visible;
+    }
+
+.search-container {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+    .search-container.active {
+        max-height: 60px;
+    }
+
+.logo-check {
+    color: #a88641;
+}
