@@ -252,26 +252,47 @@ namespace LetsCheckIn.Helpers
         {
             try
             {
+                // Check for existing active assignment
                 var existingAssignment = await _context.BranchRoles
                     .FirstOrDefaultAsync(br => br.RoleId == roleId && br.BranchId == branchId);
 
                 if (existingAssignment != null)
-                    return false;
+                {
+                    if (existingAssignment.IsActive)
+                    {
+                        // Already assigned and active
+                        return false;
+                    }
+                    else
+                    {
+                        // Reactivate the existing assignment
+                        existingAssignment.IsActive = true;
+                        existingAssignment.AssignedBy = assignedBy;
+                        existingAssignment.AssignedDate = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                        return true;
+                    }
+                }
 
+                // Create new assignment
                 var branchRole = new BranchRole
                 {
                     RoleId = roleId,
                     BranchId = branchId,
                     AssignedBy = assignedBy,
-                    AssignedDate = DateTime.UtcNow
+                    AssignedDate = DateTime.UtcNow,
+                    IsActive = true
                 };
 
                 _context.BranchRoles.Add(branchRole);
                 await _context.SaveChangesAsync();
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                // Log the exception for debugging - using System.Diagnostics for now
+                System.Diagnostics.Debug.WriteLine($"Error in AssignRoleToBranchAsync: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
                 return false;
             }
         }

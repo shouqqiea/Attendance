@@ -165,37 +165,97 @@ namespace LetsCheckIn.Controllers
         {
             try
             {
+                _logger.LogInformation($"=== AssignToBranch START ===");
+                _logger.LogInformation($"Request data: roleId={request?.RoleId}, branchId={request?.BranchId}");
+                
+                if (request == null)
+                {
+                    _logger.LogError("Request is null");
+                    return Json(new { success = false, message = "Invalid request data" });
+                }
+                
                 var currentUser = await _userManager.GetUserAsync(User);
                 if (currentUser == null) 
+                {
+                    _logger.LogWarning("User not authenticated in AssignToBranch");
                     return Json(new { success = false, message = "User not authenticated" });
-
-                // Check if user can manage the role
-                if (!await _permissionService.CanManageRoleAsync(currentUser.Id, request.RoleId))
-                {
-                    return Json(new { success = false, message = "You don't have permission to manage this role" });
                 }
-
-                // Check if user can access the branch
-                if (!await _branchAccessService.CanAccessBranchAsync(currentUser.Id, request.BranchId))
-                {
-                    return Json(new { success = false, message = "You don't have permission to access this branch" });
-                }
-
-                var success = await _permissionService.AssignRoleToBranchAsync(request.RoleId, request.BranchId, currentUser.Id);
                 
-                if (success)
+                _logger.LogInformation($"Current user: {currentUser.Id}");
+
+                // Check for existing assignment (including inactive ones due to unique constraint)
+                var existingAssignment = await _context.BranchRoles
+                    .FirstOrDefaultAsync(br => br.RoleId == request.RoleId && br.BranchId == request.BranchId);
+                
+                if (existingAssignment != null)
                 {
-                    return Json(new { success = true, message = "Role assigned to branch successfully" });
+                    _logger.LogInformation($"Found existing assignment: IsActive={existingAssignment.IsActive}");
+                    
+                    if (existingAssignment.IsActive)
+                    {
+                        _logger.LogWarning($"Role {request.RoleId} is already assigned to branch {request.BranchId}");
+                        return Json(new { success = false, message = "Role is already assigned to this branch" });
+                    }
+                    else
+                    {
+                        // Reactivate the existing assignment
+                        _logger.LogInformation($"Reactivating existing assignment");
+                        existingAssignment.IsActive = true;
+                        existingAssignment.AssignedBy = currentUser.Id;
+                        existingAssignment.AssignedDate = DateTime.UtcNow;
+                        
+                        var updateResult = await _context.SaveChangesAsync();
+                        _logger.LogInformation($"Update result: {updateResult}");
+                        
+                        if (updateResult > 0)
+                        {
+                            _logger.LogInformation($"=== SUCCESS: Role {request.RoleId} reactivated for branch {request.BranchId} ===");
+                            return Json(new { success = true, message = "Role assigned to branch successfully" });
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Update failed - no changes saved");
+                            return Json(new { success = false, message = "Failed to update assignment" });
+                        }
+                    }
                 }
                 else
                 {
-                    return Json(new { success = false, message = "Failed to assign role to branch" });
+                    // Create new assignment
+                    _logger.LogInformation($"Creating new assignment");
+                    var newBranchRole = new BranchRole
+                    {
+                        RoleId = request.RoleId,
+                        BranchId = request.BranchId,
+                        AssignedBy = currentUser.Id,
+                        AssignedDate = DateTime.UtcNow,
+                        IsActive = true
+                    };
+                    
+                    _context.BranchRoles.Add(newBranchRole);
+                    var saveResult = await _context.SaveChangesAsync();
+                    
+                    _logger.LogInformation($"Save result: {saveResult}");
+                    
+                    if (saveResult > 0)
+                    {
+                        _logger.LogInformation($"=== SUCCESS: Role {request.RoleId} assigned to branch {request.BranchId} ===");
+                        return Json(new { success = true, message = "Role assigned to branch successfully" });
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Save failed - no changes saved");
+                        return Json(new { success = false, message = "Failed to create assignment" });
+                    }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error assigning role to branch: {ex.Message}");
-                return Json(new { success = false, message = "An error occurred while assigning the role" });
+                _logger.LogError($"=== ERROR in AssignToBranch ===");
+                _logger.LogError($"Error: {ex.Message}");
+                _logger.LogError($"Inner exception: {ex.InnerException?.Message}");
+                _logger.LogError($"Stack trace: {ex.StackTrace}");
+                return Json(new { success = false, message = "An error occurred: " + ex.Message });
             }
         }
 
@@ -206,13 +266,19 @@ namespace LetsCheckIn.Controllers
         {
             try
             {
+                _logger.LogInformation($"RemoveFromBranch called with roleId: {request?.RoleId}, branchId: {request?.BranchId}");
+                
                 var currentUser = await _userManager.GetUserAsync(User);
                 if (currentUser == null) 
+                {
+                    _logger.LogWarning("User not authenticated in RemoveFromBranch");
                     return Json(new { success = false, message = "User not authenticated" });
+                }
 
                 // Check if user can manage the role
                 if (!await _permissionService.CanManageRoleAsync(currentUser.Id, request.RoleId))
                 {
+                    _logger.LogWarning($"User {currentUser.Id} doesn't have permission to manage role {request.RoleId}");
                     return Json(new { success = false, message = "You don't have permission to manage this role" });
                 }
 
@@ -220,17 +286,20 @@ namespace LetsCheckIn.Controllers
                 
                 if (success)
                 {
+                    _logger.LogInformation($"Role {request.RoleId} successfully removed from branch {request.BranchId} by user {currentUser.Id}");
                     return Json(new { success = true, message = "Role removed from branch successfully" });
                 }
                 else
                 {
+                    _logger.LogWarning($"Failed to remove role {request.RoleId} from branch {request.BranchId} by user {currentUser.Id}");
                     return Json(new { success = false, message = "Failed to remove role from branch" });
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Error removing role from branch: {ex.Message}");
-                return Json(new { success = false, message = "An error occurred while removing the role" });
+                _logger.LogError($"Stack trace: {ex.StackTrace}");
+                return Json(new { success = false, message = "An error occurred while removing the role: " + ex.Message });
             }
         }
 
@@ -602,30 +671,52 @@ namespace LetsCheckIn.Controllers
         {
             try
             {
+                _logger.LogInformation($"Delete called with roleId: {id}");
+                
                 var currentUser = await _userManager.GetUserAsync(User);
                 if (currentUser == null) 
+                {
+                    _logger.LogWarning("User not authenticated in Delete");
                     return Json(new { success = false, message = "User not authenticated" });
+                }
 
                 if (!await _permissionService.CanManageRoleAsync(currentUser.Id, id))
                 {
+                    _logger.LogWarning($"User {currentUser.Id} doesn't have permission to manage role {id}");
                     return Json(new { success = false, message = "You don't have permission to manage this role" });
+                }
+
+                var role = await _context.DynamicRoles.FindAsync(id);
+                if (role == null || role.DeletedDate != null)
+                {
+                    _logger.LogWarning($"Role {id} not found");
+                    return Json(new { success = false, message = "Role not found" });
+                }
+
+                if (role.IsSystemRole)
+                {
+                    _logger.LogWarning($"Attempted to delete system role {id}");
+                    return Json(new { success = false, message = "Cannot delete system roles" });
                 }
 
                 var success = await _permissionService.DeleteRoleAsync(id);
                 
                 if (success)
                 {
+                    _logger.LogInformation($"Role {id} ({role.RoleName}) successfully deleted by user {currentUser.Id}");
                     return Json(new { success = true, message = "Role deleted successfully" });
                 }
                 else
                 {
+                    _logger.LogWarning($"Failed to delete role {id} by user {currentUser.Id}");
                     return Json(new { success = false, message = "Failed to delete role. System roles cannot be deleted." });
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Error deleting role: {ex.Message}");
-                return Json(new { success = false, message = "An error occurred while deleting the role" });
+                _logger.LogError($"Stack trace: {ex.StackTrace}");
+                return Json(new { success = false, message = "An error occurred while deleting the role: " + ex.Message });
             }
         }
     }

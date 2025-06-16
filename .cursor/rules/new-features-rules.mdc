@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+When implementing new feature, ensure to always analyse the entire codebase to understand its structure and backend logic. Understand the new features requirement carefully and ask necessary improvement or requirements before proceeding. After fully understand the new feature requirement, segregate the task to be done into smaller task, ensure that the task cover all needed changes including backend and frontend. 
+
+
+After already segregated the task, create a chat prompt for each of the task for me to paste into separate chat window. In each of the prompt, ensure to include all reviewed codebase understanding and previous task, any migration needed should be done inside the individual segregated task and later create a mssql script with name ordered by execution order for each task as I dont want to depend on migration. Put the finalised sql script is sql folder

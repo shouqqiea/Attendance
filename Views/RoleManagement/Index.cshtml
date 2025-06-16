@@ -532,16 +532,29 @@
 
     async function assignRoleToBranch(roleId, branchId, branchName) {
         try {
+            console.log(`Attempting to assign role ${roleId} to branch ${branchId} (${branchName})`);
+            
+            // Get the anti-forgery token
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
             const response = await fetch('/RoleManagement/AssignToBranch', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    'X-CSRF-TOKEN': token
                 },
                 body: JSON.stringify({ roleId: roleId, branchId: branchId })
             });
 
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
+            console.log('Response data:', data);
             
             if (data.success) {
                 showNotification(`Role assigned to ${branchName} successfully`, 'success');
@@ -551,22 +564,35 @@
                 showNotification(data.message || 'Failed to assign role to branch', 'error');
             }
         } catch (error) {
-            showNotification('An error occurred while assigning the role', 'error');
+            console.error('Error in assignRoleToBranch:', error);
+            showNotification('An error occurred while assigning the role: ' + error.message, 'error');
         }
     }
 
     async function removeRoleFromBranch(roleId, branchId, branchName) {
         try {
+            console.log(`Attempting to remove role ${roleId} from branch ${branchId} (${branchName})`);
+            
+            // Get the anti-forgery token
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
             const response = await fetch('/RoleManagement/RemoveFromBranch', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    'X-CSRF-TOKEN': token
                 },
                 body: JSON.stringify({ roleId: roleId, branchId: branchId })
             });
 
+            console.log('Remove response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
+            console.log('Remove response data:', data);
             
             if (data.success) {
                 showNotification(`Role removed from ${branchName} successfully`, 'success');
@@ -576,7 +602,8 @@
                 showNotification(data.message || 'Failed to remove role from branch', 'error');
             }
         } catch (error) {
-            showNotification('An error occurred while removing the role', 'error');
+            console.error('Error in removeRoleFromBranch:', error);
+            showNotification('An error occurred while removing the role: ' + error.message, 'error');
         }
     }
 
@@ -595,16 +622,28 @@
         if (!currentRoleId) return;
 
         try {
+            console.log(`Attempting to delete role ${currentRoleId}`);
+            
+            // Get the anti-forgery token
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
             const response = await fetch('/RoleManagement/Delete', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    'X-CSRF-TOKEN': token
                 },
                 body: JSON.stringify(currentRoleId)
             });
 
+            console.log('Delete response status:', response.status);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
             const data = await response.json();
+            console.log('Delete response data:', data);
             
             if (data.success) {
                 showNotification('Role deleted successfully', 'success');
@@ -614,7 +653,8 @@
                 showNotification(data.message || 'Failed to delete role', 'error');
             }
         } catch (error) {
-            showNotification('An error occurred while deleting the role', 'error');
+            console.error('Error in deleteRole:', error);
+            showNotification('An error occurred while deleting the role: ' + error.message, 'error');
         }
     }
 

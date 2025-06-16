@@ -51,6 +51,12 @@ builder.Services.AddControllersWithViews()
     });
 builder.Services.AddRazorPages();
 
+// Configure anti-forgery token options
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-CSRF-TOKEN";
+});
+
 // Register BranchAccessService
 builder.Services.AddScoped<IBranchAccessService, BranchAccessService>();
 

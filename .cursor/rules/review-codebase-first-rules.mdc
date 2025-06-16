@@ -1,0 +1,6 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+Review codebase first to understand its structure and backend logic. Read all related files, if editing views or layout, ensure to understand the attached css or js file or any other related files.
