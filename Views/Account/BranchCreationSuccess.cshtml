@@ -1,0 +1,31 @@
+@model LetsCheckIn.Models.db.BranchCreationSuccessViewModel
+@{
+    ViewBag.Title = "Branch Created";
+    Layout = "~/Views/Shared/_AuthenticatedLayout.cshtml";
+}
+<div class="max-w-xl mx-auto mt-8 bg-white p-6 rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold mb-4 text-green-700">Branch Created Successfully!</h2>
+    <div class="mb-4">
+        <div class="font-semibold">Branch Name:</div>
+        <div>@Model.BranchName</div>
+    </div>
+    <div class="mb-4">
+        <div class="font-semibold">Admin Name:</div>
+        <div>@Model.AdminName</div>
+    </div>
+    <div class="mb-4">
+        <div class="font-semibold">Admin Email:</div>
+        <div>@Model.AdminEmail</div>
+    </div>
+    <div class="mb-4">
+        <div class="font-semibold">Enabled Features:</div>
+        <ul class="list-disc ml-6">
+            <li>Location: <span class="@(Model.EnableLocation ? "text-green-600" : "text-red-600")">@(Model.EnableLocation ? "Enabled" : "Disabled")</span></li>
+            <li>Network: <span class="@(Model.EnableNetwork ? "text-green-600" : "text-red-600")">@(Model.EnableNetwork ? "Enabled" : "Disabled")</span></li>
+            <li>Face: <span class="@(Model.EnableBiometric ? "text-green-600" : "text-red-600")">@(Model.EnableBiometric ? "Enabled" : "Disabled")</span></li>
+        </ul>
+    </div>
+    <div class="mt-6">
+        <a href="/Account/BranchList" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md">Back to list</a>
+    </div>
+</div>

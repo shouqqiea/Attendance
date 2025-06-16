@@ -1,0 +1,784 @@
+@model List<LetsCheckIn.Models.UserListViewModel>
+@{
+    ViewBag.Title = "User Management";
+    var branches = ViewBag.Branches as List<LetsCheckIn.Models.db.Branch>;
+    var roles = ViewBag.Roles as List<string>;
+}
+
+<!-- Add Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<div class="min-h-screen bg-gray-50">
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="fixed top-4 right-4 z-50 max-w-sm w-full"></div>
+
+    <!-- Main Content Area -->
+    <div class="max-w-7xl mx-auto px-2 sm:px-4 lg:px-8 py-4 sm:py-8">
+        <!-- Header Section -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-bold text-gray-900">User Management</h1>
+                <p class="mt-1 text-sm text-gray-500">Manage system users and their roles</p>
+            </div>
+            <button onclick="showCreateUserModal()" 
+                    class="w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[#a88641] hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641]">
+                <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add New User
+            </button>
+        </div>
+
+        <!-- Search and Filter Section -->
+        <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label for="searchInput" class="block text-sm font-medium text-gray-700">Search</label>
+                    <input type="text" id="searchInput" 
+                           class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm"
+                           placeholder="Search by name, email, or username">
+                </div>
+                <div>
+                    <label for="branchFilter" class="block text-sm font-medium text-gray-700">Branch</label>
+                    <select id="branchFilter" 
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm">
+                        <option value="">All Branches</option>
+                        @foreach (var branch in branches)
+                        {
+                            <option value="@branch.BranchName">@branch.BranchName</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label for="roleFilter" class="block text-sm font-medium text-gray-700">Role</label>
+                    <select id="roleFilter" 
+                            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm">
+                        <option value="">All Roles</option>
+                        @foreach (var role in roles)
+                        {
+                            <option value="@role">@role</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Table -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onclick="sortTable('name')">
+                                Name
+                                <span class="sort-icon ml-1">↕</span>
+                            </th>
+                            <th scope="col" class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onclick="sortTable('email')">
+                                Email
+                                <span class="sort-icon ml-1">↕</span>
+                            </th>
+                            <th scope="col" class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onclick="sortTable('branch')">
+                                Branch
+                                <span class="sort-icon ml-1">↕</span>
+                            </th>
+                            <th scope="col" class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onclick="sortTable('role')">
+                                Role
+                                <span class="sort-icon ml-1">↕</span>
+                            </th>
+                            <th scope="col" class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer" onclick="sortTable('status')">
+                                Status
+                                <span class="sort-icon ml-1">↕</span>
+                            </th>
+                            <th scope="col" class="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Actions
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="usersTableBody">
+                        @foreach (var user in Model)
+                        {
+                            <tr class="user-row" data-name="@user.FullName.ToLower()" data-email="@user.Email.ToLower()" 
+                                data-branch="@user.BranchName.ToLower()" data-role="@string.Join(',', user.Roles).ToLower()" data-status="@(user.IsActive ? "active" : "inactive")">
+                                <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">@user.FullName</div>
+                                    <div class="text-sm text-gray-500">@user.UserName</div>
+                                </td>
+                                <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">@user.Email</div>
+                                </td>
+                                <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm text-gray-900">@user.BranchName</div>
+                                </td>
+                                <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                                    <div class="flex flex-wrap gap-1">
+                                        @foreach (var role in user.Roles)
+                                        {
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-[#a88641] bg-opacity-10 text-[#916f34]">
+                                                @role
+                                            </span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="px-3 sm:px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full @(user.IsActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800")">
+                                        @(user.IsActive ? "Active" : "Inactive")
+                                    </span>
+                                </td>
+                                <td class="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <div class="flex flex-col sm:flex-row gap-2">
+                                        <button onclick="editUser('@user.Id')" 
+                                                class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-[#a88641] bg-[#a88641] bg-opacity-10 rounded-md hover:bg-opacity-20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
+                                            <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                            Edit
+                                        </button>
+                                        <button onclick="showDeleteConfirmation('@user.Id', '@user.FullName')" 
+                                                class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                                            <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            Delete
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit User Modal -->
+<div id="userModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg p-4 sm:p-6 w-full max-w-lg mx-auto">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium text-gray-900" id="modalTitle">Create New User</h3>
+            <button onclick="closeUserModal()" class="text-gray-400 hover:text-gray-500">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <form id="userForm" onsubmit="handleUserSubmit(event)" class="space-y-4">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="userId" name="id" />
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label for="firstName" class="block text-sm font-medium text-gray-700">First Name</label>
+                    <input type="text" id="firstName" name="firstName" required
+                           class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm">
+                </div>
+                <div>
+                    <label for="lastName" class="block text-sm font-medium text-gray-700">Last Name</label>
+                    <input type="text" id="lastName" name="lastName" required
+                           class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm">
+                </div>
+            </div>
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                <input type="email" id="email" name="email" required
+                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm">
+            </div>
+            <div>
+                <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                <input type="text" id="username" name="username" required
+                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm">
+            </div>
+            <div id="passwordSection">
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="password" name="password"
+                           class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm">
+                </div>
+                <div class="mt-4">
+                    <label for="confirmPassword" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword"
+                           class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm">
+                </div>
+            </div>
+            <div>
+                <label for="branch" class="block text-sm font-medium text-gray-700">Branch</label>
+                <select id="branch" name="branchId" required
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm">
+                    <option value="">Select Branch</option>
+                    @foreach (var branch in branches)
+                    {
+                        <option value="@branch.BranchId">@branch.BranchName</option>
+                    }
+                </select>
+            </div>
+            <div>
+                <label for="role" class="block text-sm font-medium text-gray-700">Roles</label>
+                <select id="role" name="roles" multiple required
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm">
+                    @foreach (var role in roles)
+                    {
+                        <option value="@role">@role</option>
+                    }
+                </select>
+            </div>
+            <div class="flex items-center">
+                <input type="checkbox" id="isActive" name="isActive" class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded">
+                <label for="isActive" class="ml-2 block text-sm text-gray-900">Active</label>
+            </div>
+            <div class="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3 pt-4">
+                <button type="button" onclick="closeUserModal()"
+                        class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641]">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-[#a88641] border border-transparent rounded-md hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641]">
+                    Save
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50 p-4">
+    <div class="bg-white rounded-lg p-4 sm:p-6 w-full max-w-sm mx-auto">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium text-gray-900">Confirm Delete</h3>
+            <button onclick="closeDeleteModal()" class="text-gray-400 hover:text-gray-500">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="mb-6">
+            <p class="text-sm text-gray-600">Are you sure you want to delete "<span id="deleteUserName" class="font-medium"></span>"? This action cannot be undone.</p>
+        </div>
+        <input type="hidden" id="deleteUserId" />
+        <div class="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
+            <button type="button" onclick="closeDeleteModal()"
+                    class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641]">
+                Cancel
+            </button>
+            <button type="button" onclick="confirmDelete()"
+                    class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- Add jQuery and Select2 JS -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        // Store branches data globally and ensure we're using the values array
+        const branchesData = @Html.Raw(Json.Serialize(branches.Select(b => new { 
+            branchId = b.BranchId, 
+            branchName = b.BranchName 
+        }))).$values || [];
+        const rolesData = @Html.Raw(Json.Serialize(roles)).$values || [];
+
+        let currentSortColumn = '';
+        let isAscending = true;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Branches Data:', branchesData);
+            initializeFilters();
+            initializeBranchRoleBinding();
+            
+            // Initialize Select2
+            if (typeof jQuery !== 'undefined') {
+                $('#role').select2({
+                    placeholder: "Select Roles",
+                    allowClear: true,
+                    width: '100%'
+                });
+            } else {
+                console.error('jQuery is not loaded');
+                // Fallback to native multiple select
+                const roleSelect = document.getElementById('role');
+                roleSelect.style.height = 'auto';
+                roleSelect.style.minHeight = '100px';
+            }
+        });
+
+        function initializeFilters() {
+            const searchInput = document.getElementById('searchInput');
+            const branchFilter = document.getElementById('branchFilter');
+            const roleFilter = document.getElementById('roleFilter');
+
+            searchInput.addEventListener('input', filterUsers);
+            branchFilter.addEventListener('change', function() {
+                filterUsers();
+                updateRoleFilter();
+            });
+            roleFilter.addEventListener('change', filterUsers);
+        }
+
+        function initializeBranchRoleBinding() {
+            const branchSelect = document.getElementById('branch');
+            if (branchSelect) {
+                branchSelect.addEventListener('change', onBranchChange);
+            }
+        }
+
+        async function updateRoleFilter() {
+            const branchFilter = document.getElementById('branchFilter');
+            const roleFilter = document.getElementById('roleFilter');
+            const selectedBranch = branchFilter.value;
+            
+            // Store current selection
+            const currentRole = roleFilter.value;
+            
+            // Clear current role options except "All Roles"
+            roleFilter.innerHTML = '<option value="">All Roles</option>';
+            
+            if (!selectedBranch) {
+                // If no branch selected, show all available roles
+                rolesData.forEach(role => {
+                    const option = document.createElement('option');
+                    option.value = role;
+                    option.textContent = role;
+                    if (role === currentRole) option.selected = true;
+                    roleFilter.appendChild(option);
+                });
+            } else {
+                // Get branch ID from branch name
+                console.log('Selected Branch:', selectedBranch); // Debug log
+                console.log('Branches Data:', branchesData); // Debug log
+                
+                const selectedBranchObj = branchesData.find(b => b.branchName === selectedBranch);
+                console.log('Selected Branch Object:', selectedBranchObj); // Debug log
+                
+                if (selectedBranchObj) {
+                    try {
+                        const response = await fetch(`/UserManagement/GetRolesForBranch?branchId=${selectedBranchObj.branchId}`);
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        const data = await response.json();
+                        console.log('Roles Response:', data); // Debug log
+                        
+                        if (data.success && data.roles && Array.isArray(data.roles)) {
+                            data.roles.forEach(role => {
+                                const option = document.createElement('option');
+                                option.value = role.value;
+                                option.textContent = role.text;
+                                if (role.value === currentRole) option.selected = true;
+                                roleFilter.appendChild(option);
+                            });
+                        } else {
+                            console.error('Invalid roles data:', data);
+                            showNotification('error', 'Failed to load roles: Invalid data format');
+                        }
+                    } catch (error) {
+                        console.error('Error loading roles for branch:', error);
+                        showNotification('error', 'Error loading roles for branch');
+                    }
+                } else {
+                    console.error('Branch not found:', selectedBranch);
+                    showNotification('error', 'Selected branch not found');
+                }
+            }
+        }
+
+        async function onBranchChange() {
+            const branchSelect = document.getElementById('branch');
+            const roleSelect = document.getElementById('role');
+            const selectedBranchId = branchSelect.value;
+
+            // Clear role options
+            roleSelect.innerHTML = '<option value="">Select Role</option>';
+
+            if (selectedBranchId) {
+                try {
+                    const response = await fetch(`/UserManagement/GetRolesForBranch?branchId=${selectedBranchId}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    console.log('Modal Roles Response:', data); // Debug log
+
+                    if (data.success && data.roles && Array.isArray(data.roles)) {
+                        data.roles.forEach(role => {
+                            const option = document.createElement('option');
+                            option.value = role.value;
+                            option.textContent = role.text;
+                            roleSelect.appendChild(option);
+                        });
+                    } else {
+                        console.error('Invalid roles data in modal:', data);
+                        showNotification('error', 'Failed to load roles: Invalid data format');
+                    }
+                } catch (error) {
+                    console.error('Error loading roles for branch in modal:', error);
+                    showNotification('error', 'Error loading roles for branch');
+                }
+            }
+        }
+
+        function filterUsers() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const branchFilter = document.getElementById('branchFilter').value.toLowerCase();
+            const roleFilter = document.getElementById('roleFilter').value.toLowerCase();
+            const rows = document.querySelectorAll('.user-row');
+
+            rows.forEach(row => {
+                const name = row.dataset.name;
+                const email = row.dataset.email;
+                const branch = row.dataset.branch;
+                const role = row.dataset.role;
+
+                const matchesSearch = name.includes(searchTerm) || 
+                                    email.includes(searchTerm);
+                const matchesBranch = !branchFilter || branch === branchFilter;
+                const matchesRole = !roleFilter || role === roleFilter;
+
+                row.style.display = matchesSearch && matchesBranch && matchesRole ? '' : 'none';
+            });
+        }
+
+        function sortTable(column) {
+            const tbody = document.getElementById('usersTableBody');
+            const rows = Array.from(tbody.getElementsByTagName('tr'));
+            
+            // Reset all sort icons
+            document.querySelectorAll('.sort-icon').forEach(icon => icon.textContent = '↕');
+            
+            // Update sort direction
+            if (currentSortColumn === column) {
+                isAscending = !isAscending;
+            } else {
+                currentSortColumn = column;
+                isAscending = true;
+            }
+            
+            // Update clicked column's sort icon
+            const clickedHeader = document.querySelector(`th[onclick="sortTable('${column}')"] .sort-icon`);
+            clickedHeader.textContent = isAscending ? '↑' : '↓';
+            
+            rows.sort((a, b) => {
+                const aValue = a.dataset[column];
+                const bValue = b.dataset[column];
+                return isAscending ? 
+                    aValue.localeCompare(bValue) : 
+                    bValue.localeCompare(aValue);
+            });
+            
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        function showCreateUserModal() {
+            document.getElementById('modalTitle').textContent = 'Create New User';
+            document.getElementById('userForm').reset();
+            document.getElementById('userId').value = '';
+            document.getElementById('passwordSection').style.display = 'block';
+            document.getElementById('password').required = true;
+            document.getElementById('confirmPassword').required = true;
+            document.getElementById('isActive').checked = true;
+            
+            // Enable email and username fields for creation
+            document.getElementById('email').disabled = false;
+            document.getElementById('username').disabled = false;
+            
+            // Set username to match email when email changes
+            document.getElementById('email').addEventListener('input', function(e) {
+                document.getElementById('username').value = e.target.value;
+            });
+            
+            // Clear role dropdown when creating new user
+            const roleSelect = document.getElementById('role');
+            roleSelect.innerHTML = '<option value="">Select Role</option>';
+            
+            document.getElementById('userModal').classList.remove('hidden');
+            document.getElementById('userModal').classList.add('flex');
+        }
+
+        async function editUser(id) {
+            document.getElementById('modalTitle').textContent = 'Edit User';
+            document.getElementById('userId').value = id;
+            document.getElementById('passwordSection').style.display = 'none';
+            document.getElementById('password').required = false;
+            document.getElementById('confirmPassword').required = false;
+
+            // Disable email and username fields for editing
+            document.getElementById('email').disabled = true;
+            document.getElementById('username').disabled = true;
+
+            try {
+                const response = await fetch(`/UserManagement/Edit/${id}`);
+                const result = await response.json();
+                
+                console.log('Edit user response:', result);
+                
+                if (result.success) {
+                    const data = result.data;
+                    console.log('User data:', data);
+                    
+                    // Set form field values
+                    document.getElementById('firstName').value = data.firstName;
+                    document.getElementById('lastName').value = data.lastName;
+                    document.getElementById('email').value = data.email;
+                    document.getElementById('username').value = data.userName;
+                    document.getElementById('branch').value = data.branchId;
+                    document.getElementById('isActive').checked = data.status;
+                    
+                    // Load roles for the selected branch first, then set the selected roles
+                    await loadRolesForBranch(data.branchId, data.roles);
+                    
+                    document.getElementById('userModal').classList.remove('hidden');
+                    document.getElementById('userModal').classList.add('flex');
+                } else {
+                    showNotification('error', result.message || 'Failed to load user details');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('error', 'Failed to load user details');
+            }
+        }
+
+        async function loadRolesForBranch(branchId, selectedRoles = []) {
+            const roleSelect = document.getElementById('role');
+            roleSelect.innerHTML = '';
+
+            if (branchId) {
+                try {
+                    const response = await fetch(`/UserManagement/GetRolesForBranch?branchId=${branchId}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const data = await response.json();
+                    console.log('Edit Modal Roles Response:', data);
+
+                    if (data.success && data.roles && Array.isArray(data.roles)) {
+                        data.roles.forEach(role => {
+                            const option = document.createElement('option');
+                            option.value = role.value;
+                            option.textContent = role.text;
+                            if (selectedRoles && selectedRoles.includes(role.value)) {
+                                option.selected = true;
+                            }
+                            roleSelect.appendChild(option);
+                        });
+                        
+                        // Refresh Select2 if available
+                        if (typeof jQuery !== 'undefined') {
+                            $('#role').trigger('change');
+                        }
+                    } else {
+                        console.error('Invalid roles data in edit modal:', data);
+                        showNotification('error', 'Failed to load roles: Invalid data format');
+                    }
+                } catch (error) {
+                    console.error('Error loading roles for branch in edit modal:', error);
+                    showNotification('error', 'Error loading roles for branch');
+                }
+            }
+        }
+
+        function closeUserModal() {
+            document.getElementById('userModal').classList.add('hidden');
+            document.getElementById('userModal').classList.remove('flex');
+            document.getElementById('userForm').reset();
+            
+            // Remove email input event listener
+            const emailInput = document.getElementById('email');
+            emailInput.replaceWith(emailInput.cloneNode(true));
+        }
+
+        function handleUserSubmit(event) {
+            event.preventDefault();
+            const form = event.target;
+            const formData = new FormData(form);
+            const userId = formData.get('id');
+            
+            // Get values from disabled fields
+            const email = document.getElementById('email').value;
+            const username = document.getElementById('username').value;
+            
+            // Validate passwords match for new users
+            if (!userId) {
+                const password = formData.get('password');
+                const confirmPassword = formData.get('confirmPassword');
+                if (password !== confirmPassword) {
+                    showNotification('error', 'Passwords do not match');
+                    return;
+                }
+            }
+
+            // Validate role selection
+            let roles;
+            if (typeof jQuery !== 'undefined') {
+                roles = $('#role').val();
+            } else {
+                roles = Array.from(document.getElementById('role').selectedOptions).map(option => option.value);
+            }
+            
+            if (!roles || roles.length === 0) {
+                showNotification('error', 'Please select at least one role');
+                return;
+            }
+
+            // Validate branch selection
+            const branchId = formData.get('branchId');
+            if (!branchId) {
+                showNotification('error', 'Please select a branch');
+                return;
+            }
+            
+            const data = {
+                id: userId,
+                firstName: formData.get('firstName'),
+                lastName: formData.get('lastName'),
+                email: email,  // Use the value from disabled field
+                userName: username,  // Use the value from disabled field
+                password: formData.get('password'),
+                branchId: parseInt(branchId),
+                roles: roles,
+                status: formData.get('isActive') === 'on'
+            };
+
+            console.log('Submitting user data:', data);
+
+            const url = userId ? '/UserManagement/Edit' : '/UserManagement/Create';
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                console.log('Server response:', result);
+                if (result.success) {
+                    showNotification('success', result.message);
+                    closeUserModal();
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showNotification('error', result.message);
+                    if (result.errors) {
+                        if (Array.isArray(result.errors)) {
+                            result.errors.forEach(error => showNotification('error', error));
+                        } else if (typeof result.errors === 'object') {
+                            Object.values(result.errors).forEach(error => {
+                                if (Array.isArray(error)) {
+                                    error.forEach(e => showNotification('error', e));
+                                } else {
+                                    showNotification('error', error);
+                                }
+                            });
+                        } else {
+                            showNotification('error', result.errors.toString());
+                        }
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('error', 'An error occurred while saving the user');
+            });
+        }
+
+        function showDeleteConfirmation(id, name) {
+            console.log('Delete user:', id, name); // Debug log
+            document.getElementById('deleteUserId').value = id;
+            document.getElementById('deleteUserName').textContent = name;
+            document.getElementById('deleteModal').classList.remove('hidden');
+            document.getElementById('deleteModal').classList.add('flex');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.add('hidden');
+            document.getElementById('deleteModal').classList.remove('flex');
+            document.getElementById('deleteUserId').value = '';
+            document.getElementById('deleteUserName').textContent = '';
+        }
+
+        function confirmDelete() {
+            const id = document.getElementById('deleteUserId').value;
+            console.log('Confirming delete for user:', id); // Debug log
+            
+            if (!id) {
+                showNotification('error', 'User ID is missing');
+                closeDeleteModal();
+                return;
+            }
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            fetch('/UserManagement/Delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify(id) // Send just the ID as a string
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(result => {
+                console.log('Delete response:', result); // Debug log
+                if (result.success) {
+                    showNotification('success', result.message);
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showNotification('error', result.message || 'Failed to delete user');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting user:', error);
+                showNotification('error', 'An error occurred while deleting the user');
+            })
+            .finally(() => {
+                closeDeleteModal();
+            });
+        }
+
+        function showNotification(type, message) {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `p-4 mb-4 rounded-md shadow-lg transform transition-all duration-300 ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        ${type === 'success' ? 
+                            '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>' :
+                            '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>'
+                        }
+                    </svg>
+                    <span class="text-sm font-medium">${message}</span>
+                </div>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Fade in
+            setTimeout(() => {
+                notification.style.opacity = '1';
+            }, 100);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            }, 5000);
+        }
+    </script>
+} 

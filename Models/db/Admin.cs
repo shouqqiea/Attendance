@@ -1,6 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
-namespace AttendEase.Models.db
+namespace LetsCheckIn.Models.db
 {
     public class Admin
     {

@@ -1,33 +1,45 @@
-﻿@* Views/Shared/_LoggedLayout.cshtml *@
+@* Views/Shared/_LoggedLayout.cshtml *@
 @using Microsoft.AspNetCore.Components.Routing
+@using LetsCheckIn.Models.db
+@using LetsCheckIn.Helpers
+@using LetsCheckIn.Models
+@using Microsoft.AspNetCore.Identity
+@inject LetsCheckIn.Helpers.IDynamicPermissionService PermissionService
+@inject UserManager<ApplicationUser> UserManager
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Leave Management System</title>
+    <title>@ViewData["Title"] - LetsCheckIn</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="~/css/leave-management.css" />
     <link rel="stylesheet" href="~/css/Tailwind.css" />
     <link rel="stylesheet" href="~/css/site.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <script src="~/js/notification.js"></script>
     <script src="~/js/site.js"></script>
 
     <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
         .active, .nav-active {
-            background-color: #4338ca !important; /* Tailwind's bg-indigo-700 */
-            color: #fff !important;
+            background-color: #916f34 !important;
+        }
+        .header-gradient {
+            background: linear-gradient(135deg, #a88641, #f2d194);
         }
     </style>
 </head>
-<body class="bg-gray-100">
+<body class="bg-gray-50">
     @if (User.Identity.IsAuthenticated)
     {
         <!-- Mobile Menu Toggle Button -->
         <div class="fixed top-4 left-4 z-50 md:hidden">
-            <button id="mobileMenuToggle" class="bg-indigo-600 text-white p-2 rounded-md shadow-md">
+            <button id="mobileMenuToggle" class="bg-[#a88641] text-black p-2 rounded-md shadow-md">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                 </svg>
@@ -35,24 +47,20 @@
         </div>
 
         <!-- Mobile Menu Overlay -->
-        <div id="menuOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 menu-overlay md:hidden"></div>
+        <div id="menuOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden md:hidden"></div>
 
         <!-- Mobile Sidebar -->
-        <div id="mobileSidebar" class="fixed top-0 left-0 h-full w-64 bg-indigo-800 text-white z-50 mobile-menu md:hidden overflow-y-auto">
-            <div class="p-4 border-b border-indigo-700">
+        <div id="mobileSidebar" class="fixed top-0 left-0 h-full w-64 bg-[#a88641] text-black z-50 transform -translate-x-full transition-transform duration-300 md:hidden overflow-y-auto">
+            <div class="p-4 border-b border-[#916f34]">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
-                        <div class="bg-indigo-600 rounded-full w-10 h-10 flex items-center justify-center mr-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd"></path>
-                            </svg>
-                        </div>
-                        <div>
-                            <p class="font-medium">HR Manager</p>
-                            <p class="text-xs opacity-75">Team Lead</p>
+                        <img src="/images/logo-black-icon.png" alt="Logo" class="h-8 w-8 bg-white rounded-full p-1" />
+                        <div class="ml-3">
+                            <p class="font-medium">@(User.FindFirst("FirstName")?.Value ?? "User")</p>
+                            <p class="text-xs opacity-75">@(User.FindFirst("Role")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Employee")</p>
                         </div>
                     </div>
-                    <button id="closeMobileMenu" class="text-white">
+                    <button id="closeMobileMenu" class="text-black">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
@@ -61,40 +69,86 @@
             </div>
             <nav class="p-4">
                 <ul class="space-y-2">
+                    @if (await Html.HasPermission("dashboard.view"))
+                    {
+                        <li>
+                            <a href="/LeaveManagement/Dashboard" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black  transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/Dashboard") ? "active" : "")">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                                </svg>
+                                Dashboard
+                            </a>
+                        </li>
+                    }
+                    @if (await Html.HasAnyPermission("leave.view", "leave.approve"))
+                    {
+                        <li>
+                            <a href="/LeaveManagement/LeaveApproval" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black  transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveApproval") ? "active" : "")">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
+                                </svg>
+                                Leave Management
+                            </a>
+                        </li>
+                    }
+                    @if (await Html.HasPermission("leave.create"))
+                    {
+                        <li>
+                            <a href="/LeaveManagement/LeaveRequest" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black  transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveRequest") ? "active" : "")">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+                                </svg>
+                                Leave Request
+                            </a>
+                        </li>
+                    }
+                    @if (await Html.HasPermission("branch.view"))
+                    {
+                        <li>
+                            <a href="/Account/BranchList" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black  transition-colors @(Context.Request.Path.StartsWithSegments("/Account/BranchList") ? "active" : "")">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm3 2a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h.01a1 1 0 100-2H10zm3 0a1 1 0 000 2h.01a1 1 0 100-2H13zm-6 3a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h.01a1 1 0 100-2H10zm3 0a1 1 0 000 2h.01a1 1 0 100-2H13zm-6 3a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h.01a1 1 0 100-2H10zm3 0a1 1 0 000 2h.01a1 1 0 100-2H13z" clip-rule="evenodd"></path>
+                                </svg>
+                                Branch Management
+                            </a>
+                        </li>
+                    }
+                    @if (await Html.HasAnyPermission("user.view", "user.create", "user.edit", "role.view"))
+                    {
+                        <li class="space-y-2">
+                            <button type="button" id="mobileEmployeeMenuButton" class="w-full flex items-center justify-start p-2 rounded-md hover:bg-[#916f34] hover:text-black transition-colors cursor-pointer text-left">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path>
+                                </svg>
+                                <span class="text-left">Employees Management</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-auto transform transition-transform" id="mobileEmployeeSubmenuIcon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
+                            <div class="pl-10 hidden" id="mobileEmployeeSubmenu">
+                                @if (await Html.HasAnyPermission("user.view", "user.create", "user.edit"))
+                                {
+                                    <a href="/UserManagement" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black transition-colors @(Context.Request.Path.StartsWithSegments("/UserManagement") ? "active" : "")">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"></path>
+                                        </svg>
+                                        User Management
+                                    </a>
+                                }
+                                @if (await Html.HasPermission("role.view"))
+                                {
+                                    <a href="/RoleManagement" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black transition-colors @(Context.Request.Path.StartsWithSegments("/RoleManagement") ? "active" : "")">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M9.504 1.132a1 1 0 01.992 0l1.75 1a1 1 0 11-.992 1.736L10 3.152l-1.254.716a1 1 0 11-.992-1.736l1.75-1zM5.618 4.504a1 1 0 01-.372 1.364L5.016 6l.23.132a1 1 0 11-.992 1.736L3 7.723V8a1 1 0 01-2 0V6a.996.996 0 01.52-.878l1.734-.99a1 1 0 011.364.372zm8.764 0a1 1 0 011.364-.372l1.734.99A.996.996 0 0118 6v2a1 1 0 11-2 0v-.277l-1.254.145a1 1 0 11-.992-1.736L14.984 6l-.23-.132a1 1 0 01-.372-1.364zm-7 4a1 1 0 011.364-.372L10 8.848l1.254-.716a1 1 0 11.992 1.736L11 10.723V12a1 1 0 11-2 0v-1.277l-1.246-.855a1 1 0 01-.372-1.364zM3 11a1 1 0 011 1v1.277l1.246.855a1 1 0 11-.992 1.736l-1.75-1A1 1 0 012 14v-2a1 1 0 011-1zm14 0a1 1 0 011 1v2a1 1 0 01-.504.868l-1.75 1a1 1 0 11-.992-1.736L16 13.277V12a1 1 0 011-1zm-9.618 5.504a1 1 0 011.364-.372l.254.145V16a1 1 0 112 0v.277l.254-.145a1 1 0 11.992 1.736l-1.735.992a.995.995 0 01-1.022 0l-1.735-.992a1 1 0 01-.372-1.364z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Role Management
+                                </a>
+                            }
+                            </div>
+                        </li>
+                    }
                     <li>
-                        <NavLink href="/" class="flex items-center p-2 rounded-md hover:bg-indigo-700 transition-colors" activeClass="active" Match="NavLinkMatch.All">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
-                            </svg>
-                            Dashboard
-                        </NavLink>
-                    </li>
-                    <li>
-                        <a href="/LeaveManagement/LeaveApproval" class="flex items-center p-2 rounded-md hover:bg-indigo-700 transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveApproval") ? "active" : "")">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
-                            </svg>
-                            Leave Management
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/LeaveManagement/LeaveRequest" class="flex items-center p-2 rounded-md hover:bg-indigo-700 transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveRequest") ? "active" : "")">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
-                            </svg>
-                            Leave Request
-                        </a>
-                    </li>
-                    <li>
-                        <NavLink href="/employees-management" class="flex items-center p-2 rounded-md hover:bg-indigo-700 transition-colors" activeClass="active">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path>
-                            </svg>
-                            Employees Management
-                        </NavLink>
-                    </li>
-                    <li>
-                        <NavLink href="/settings" class="flex items-center p-2 rounded-md hover:bg-indigo-700 transition-colors" activeClass="active">
+                        <NavLink href="/settings" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black  transition-colors" activeClass="active">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
                             </svg>
@@ -102,70 +156,110 @@
                         </NavLink>
                     </li>
                 </ul>
-                <!-- ... Quick Stats and Sign Out remain unchanged ... -->
             </nav>
-            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-indigo-700">
-                <a href="/Account/Logout" class="flex items-center text-indigo-200 hover:text-white transition-colors">
+            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-[#916f34]">
+                <a href="/Account/Logout" class="flex items-center text-black/90 hover:text-black transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"></path>
                     </svg>
                     Sign Out
                 </a>
-
             </div>
         </div>
 
         <!-- Desktop Sidebar -->
-        <div id="desktopSidebar" class="hidden md:block fixed top-0 left-0 h-full w-64 bg-indigo-800 text-white z-30 sidebar overflow-y-auto">
-            <div class="p-4 border-b border-indigo-700">
+        <div id="desktopSidebar" class="hidden md:block fixed top-0 left-0 h-full w-64 bg-[#a88641] text-black z-30 sidebar overflow-y-auto">
+            <div class="p-4 border-b border-[#916f34]">
                 <div class="flex items-center">
-                    <div class="bg-indigo-600 rounded-full w-10 h-10 flex items-center justify-center mr-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd"></path>
-                        </svg>
-                    </div>
-                    <div>
-                        <p class="font-medium">HR Manager</p>
-                        <p class="text-xs opacity-75">Team Lead</p>
+                    <img src="/images/logo-black-icon.png" alt="Logo" class="h-8 w-8 bg-white rounded-full p-1" />
+                    <div class="ml-3">
+                        <p class="font-medium">@(User.FindFirst("FirstName")?.Value ?? "User")</p>
+                        <p class="text-xs opacity-75">@(User.FindFirst("Role")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Employee")</p>
                     </div>
                 </div>
             </div>
             <nav class="p-4">
                 <ul class="space-y-2">
+                    @if (await Html.HasPermission("dashboard.view"))
+                    {
+                        <li>
+                            <a href="/LeaveManagement/Dashboard" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black  transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/Dashboard") ? "active" : "")">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                                </svg>
+                                Dashboard
+                            </a>
+                        </li>
+                    }
+                    @if (await Html.HasAnyPermission("leave.view", "leave.approve"))
+                    {
+                        <li>
+                            <a href="/LeaveManagement/LeaveApproval" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black  transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveApproval") ? "active" : "")">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
+                                </svg>
+                                Leave Management
+                            </a>
+                        </li>
+                    }
+                    @if (await Html.HasPermission("leave.create"))
+                    {
+                        <li>
+                            <a href="/LeaveManagement/LeaveRequest" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black  transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveRequest") ? "active" : "")">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+                                </svg>
+                                Leave Request
+                            </a>
+                        </li>
+                    }
+                    @if (await Html.HasPermission("branch.view"))
+                    {
+                        <li>
+                            <a href="/Account/BranchList" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black  transition-colors @(Context.Request.Path.StartsWithSegments("/Account/BranchList") ? "active" : "")">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm3 2a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h.01a1 1 0 100-2H10zm3 0a1 1 0 000 2h.01a1 1 0 100-2H13zm-6 3a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h.01a1 1 0 100-2H10zm3 0a1 1 0 000 2h.01a1 1 0 100-2H13zm-6 3a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h.01a1 1 0 100-2H10zm3 0a1 1 0 000 2h.01a1 1 0 100-2H13z" clip-rule="evenodd"></path>
+                                </svg>
+                                Branch Management
+                            </a>
+                        </li>
+                    }
+                    @if (await Html.HasAnyPermission("user.view", "user.create", "user.edit", "role.view"))
+                    {
+                        <li class="space-y-2">
+                            <button type="button" id="employeeMenuButton" class="w-full flex items-center justify-start p-2 rounded-md hover:bg-[#916f34] hover:text-black transition-colors cursor-pointer text-left">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
+                                    <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path>
+                                </svg>
+                                <span class="text-left">Employees Management</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-auto transform transition-transform" id="employeeSubmenuIcon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
+                            <div class="pl-10 hidden" id="employeeSubmenu">
+                                @if (await Html.HasAnyPermission("user.view", "user.create", "user.edit"))
+                                {
+                                    <a href="/UserManagement" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black transition-colors @(Context.Request.Path.StartsWithSegments("/UserManagement") ? "active" : "")">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6zM16 7a1 1 0 10-2 0v1h-1a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V7z"></path>
+                                        </svg>
+                                        User Management
+                                    </a>
+                                }
+                                @if (await Html.HasPermission("role.view"))
+                                {
+                                    <a href="/RoleManagement" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black transition-colors @(Context.Request.Path.StartsWithSegments("/RoleManagement") ? "active" : "")">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M9.504 1.132a1 1 0 01.992 0l1.75 1a1 1 0 11-.992 1.736L10 3.152l-1.254.716a1 1 0 11-.992-1.736l1.75-1zM5.618 4.504a1 1 0 01-.372 1.364L5.016 6l.23.132a1 1 0 11-.992 1.736L3 7.723V8a1 1 0 01-2 0V6a.996.996 0 01.52-.878l1.734-.99a1 1 0 011.364.372zm8.764 0a1 1 0 011.364-.372l1.734.99A.996.996 0 0118 6v2a1 1 0 11-2 0v-.277l-1.254.145a1 1 0 11-.992-1.736L14.984 6l-.23-.132a1 1 0 01-.372-1.364zm-7 4a1 1 0 011.364-.372L10 8.848l1.254-.716a1 1 0 11.992 1.736L11 10.723V12a1 1 0 11-2 0v-1.277l-1.246-.855a1 1 0 01-.372-1.364zM3 11a1 1 0 011 1v1.277l1.246.855a1 1 0 11-.992 1.736l-1.75-1A1 1 0 012 14v-2a1 1 0 011-1zm14 0a1 1 0 011 1v2a1 1 0 01-.504.868l-1.75 1a1 1 0 11-.992-1.736L16 13.277V12a1 1 0 011-1zm-9.618 5.504a1 1 0 011.364-.372l.254.145V16a1 1 0 112 0v.277l.254-.145a1 1 0 11.992 1.736l-1.735.992a.995.995 0 01-1.022 0l-1.735-.992a1 1 0 01-.372-1.364z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    Role Management
+                                </a>
+                            }
+                            </div>
+                        </li>
+                    }
                     <li>
-                        <NavLink href="/" class="flex items-center p-2 rounded-md hover:bg-indigo-700 transition-colors" activeClass="active" Match="NavLinkMatch.All">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
-                            </svg>
-                            Dashboard
-                        </NavLink>
-                    </li>
-                    <li>
-                        <a href="/LeaveManagement/LeaveApproval" class="flex items-center p-2 rounded-md hover:bg-indigo-700 transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveApproval") ? "active" : "")">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
-                            </svg>
-                            Leave Management
-                        </a>
-                    </li>
-                    <li>
-                        <a href="/LeaveManagement/LeaveRequest" class="flex items-center p-2 rounded-md hover:bg-indigo-700 transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveRequest") ? "active" : "")">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
-                            </svg>
-                            Leave Request
-                        </a>
-                    </li>
-                    <li>
-                        <NavLink href="/employees-management" class="flex items-center p-2 rounded-md hover:bg-indigo-700 transition-colors" activeClass="active">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z"></path>
-                            </svg>
-                            Employees Management
-                        </NavLink>
-                    </li>
-                    <li>
-                        <NavLink href="/settings" class="flex items-center p-2 rounded-md hover:bg-indigo-700 transition-colors" activeClass="active">
+                        <NavLink href="/settings" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black transition-colors" activeClass="active">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"></path>
                             </svg>
@@ -173,42 +267,44 @@
                         </NavLink>
                     </li>
                 </ul>
-                <div class="mt-8 pt-4 border-t border-indigo-700">
-                    <h3 class="text-sm font-medium text-indigo-300 mb-2">Quick Stats</h3>
-                    <div class="bg-indigo-700 rounded-md p-3 mb-3">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-xs">Pending Requests</span>
-                            <span class="text-xs font-medium">3</span>
+                @if (await Html.HasPermission("dashboard.analytics"))
+                {
+                    <div class="mt-8 pt-4 border-t border-[#916f34]">
+                        <h3 class="text-sm font-medium text-black mb-2">Quick Stats</h3>
+                        <div class="bg-white rounded-md p-3 mb-3">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs">Pending Requests</span>
+                                <span class="text-xs font-medium">3</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                <div class="bg-yellow-400 h-1.5 rounded-full" style="width: 60%"></div>
+                            </div>
                         </div>
-                        <div class="w-full bg-indigo-600 rounded-full h-1.5">
-                            <div class="bg-yellow-400 h-1.5 rounded-full" style="width: 60%"></div>
+                        <div class="bg-white rounded-md p-3">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-xs">Approved Today</span>
+                                <span class="text-xs font-medium">2</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                <div class="bg-green-400 h-1.5 rounded-full" style="width: 40%"></div>
+                            </div>
                         </div>
                     </div>
-                    <div class="bg-indigo-700 rounded-md p-3">
-                        <div class="flex justify-between items-center mb-1">
-                            <span class="text-xs">Approved Today</span>
-                            <span class="text-xs font-medium">2</span>
-                        </div>
-                        <div class="w-full bg-indigo-600 rounded-full h-1.5">
-                            <div class="bg-green-400 h-1.5 rounded-full" style="width: 40%"></div>
-                        </div>
-                    </div>
-                </div>
+                }
             </nav>
-            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-indigo-700">
-                <a href="/Account/Logout" class="flex items-center text-indigo-200 hover:text-white transition-colors">
+            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-[#916f34]">
+                <a href="/Account/Logout" class="flex items-center text-black/90 hover:text-black transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                         <path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clip-rule="evenodd"></path>
                     </svg>
                     Sign Out
                 </a>
-
             </div>
         </div>
 
         <!-- Toggle Button for Desktop Sidebar -->
         <div class="fixed top-4 left-4 z-30 hidden md:block">
-            <button id="toggleSidebar" class="bg-indigo-600 text-white p-2 rounded-md shadow-md">
+            <button id="toggleSidebar" class="bg-[#a88641] text-black p-2 rounded-md shadow-md">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                 </svg>
@@ -218,25 +314,24 @@
         <!-- Notification Container -->
         <div id="notificationContainer" class="fixed top-4 right-4 z-50 space-y-2 w-full max-w-xs"></div>
         <!-- Main Content -->
-        <div id="mainContent" class="md:ml-64 transition-all duration-300 p-2 md:p-6">
-            <div class="max-w-5xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
-
+        <div id="mainContent" class="ml-0 md:ml-64 transition-all duration-300 p-2 md:p-6">
+            <div class="max-w-7xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
                 <!-- Header -->
-                <header class="header-gradient text-white shadow-lg relative z-10">
+                <header class="header-gradient text-black shadow-lg relative z-10">
                     <div class="p-4">
-                        <!-- Header Row with all elements in one line for desktop, different arrangement for mobile -->
                         <div class="flex flex-wrap items-center justify-between w-full">
                             <!-- Logo and Title -->
                             <div class="flex items-center ml-10 sm:ml-0">
-                                <h1 class="text-xl sm:text-2xl font-bold tracking-tight">AttendEase</h1>
-                                <span class="ml-1 sm:ml-2 bg-indigo-800 text-xs px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full">HR</span>
+                                <img src="/images/logo-black-icon.png" alt="Logo" class="h-7 w-7" />
+                                <h1 class="text-lg sm:text-xl font-bold text-black ml-2">Lets<span class="text-black">Check</span>In</h1>
+                                <span class="ml-2 bg-white/10 text-black text-xs px-2 py-0.5 rounded-full">HR</span>
                             </div>
 
                             <!-- Date and Time - Hidden on mobile, visible on desktop -->
                             <div class="hidden sm:flex items-center space-x-4 order-3 sm:order-2 w-full sm:w-auto justify-center sm:justify-start mt-3 sm:mt-0">
                                 <!-- Today's Date -->
                                 <div class="flex items-center space-x-2 bg-white bg-opacity-10 rounded-lg px-3 py-1.5">
-                                    <div class="bg-indigo-500 rounded-full w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center">
+                                    <div class="bg-white rounded-full w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 20 20" fill="currentColor">
                                             <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
                                         </svg>
@@ -246,7 +341,7 @@
 
                                 <!-- Current Time -->
                                 <div class="flex items-center space-x-2 bg-white bg-opacity-10 rounded-lg px-3 py-1.5">
-                                    <div class="bg-indigo-500 rounded-full w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center">
+                                    <div class="bg-white rounded-full w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 20 20" fill="currentColor">
                                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
                                         </svg>
@@ -260,14 +355,14 @@
                                 <!-- User Profile Dropdown -->
                                 <div class="relative">
                                     <button id="userMenuButton" class="flex items-center space-x-2 bg-white bg-opacity-10 hover:bg-opacity-20 rounded-lg py-1.5 px-2 sm:px-3 transition-all">
-                                        <div class="bg-indigo-500 rounded-full w-7 h-7 sm:w-9 sm:h-9 flex items-center justify-center border-2 border-white">
+                                        <div class="bg-white rounded-full w-7 h-7 sm:w-9 sm:h-9 flex items-center justify-center border-2 border-white">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
                                                 <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
                                             </svg>
                                         </div>
                                         <div class="text-left hidden sm:block">
-                                            <p class="text-sm font-semibold">HR Manager</p>
-                                            <p class="text-xs text-white/80">Team Lead</p>
+                                            <p class="text-sm font-semibold">@(User.FindFirst("FirstName")?.Value ?? "User")</p>
+                                            <p class="text-xs text-black/80">@(User.FindFirst("Role")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Employee")</p>
                                         </div>
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden sm:block" viewBox="0 0 20 20" fill="currentColor">
                                             <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
@@ -277,8 +372,8 @@
                                     <!-- Dropdown Menu -->
                                     <div id="userDropdown" class="dropdown-menu absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl py-2 z-20" style="background-color: #fff !important;">
                                         <div class="px-4 py-3 border-b border-gray-100">
-                                            <p class="text-sm font-medium text-gray-900">Sarah Johnson</p>
-                                            <p class="text-xs text-gray-500">sarah.johnson@attendease.com</p>
+                                            <p class="text-sm font-medium text-gray-900">@(User.FindFirst("FirstName")?.Value + " " + User.FindFirst("LastName")?.Value ?? User.Identity.Name ?? "User")</p>
+                                            <p class="text-xs text-gray-500">@(User.Identity.Name ?? "user@company.com")</p>
                                         </div>
                                         <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 text-gray-500" viewBox="0 0 20 20" fill="currentColor">
@@ -300,7 +395,7 @@
                             <div class="flex sm:hidden items-center space-x-3 order-4 w-full justify-center mt-3">
                                 <!-- Today's Date -->
                                 <div class="flex items-center space-x-2 bg-white bg-opacity-10 rounded-lg px-3 py-1.5">
-                                    <div class="bg-indigo-500 rounded-full w-6 h-6 flex items-center justify-center">
+                                    <div class="bg-white rounded-full w-6 h-6 flex items-center justify-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                                             <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
                                         </svg>
@@ -310,7 +405,7 @@
 
                                 <!-- Current Time -->
                                 <div class="flex items-center space-x-2 bg-white bg-opacity-10 rounded-lg px-3 py-1.5">
-                                    <div class="bg-indigo-500 rounded-full w-6 h-6 flex items-center justify-center">
+                                    <div class="bg-white rounded-full w-6 h-6 flex items-center justify-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
                                         </svg>
@@ -321,18 +416,157 @@
                         </div>
                     </div>
                 </header>
+                @RenderSection("Scripts", required: false)
+
                 @RenderBody()
             </div>
         </div>
     }
     else
     {
-        <div class="flex items-center justify-center min-h-screen bg-gray-100">
+        <div class="flex items-center justify-center min-h-screen bg-gray-50">
             <div class="bg-white p-8 rounded shadow-md text-center">
+                @RenderSection("Scripts", required: false)
+
                 @RenderBody()
             </div>
         </div>
     }
     <iframe height="1" width="1" style="position: absolute; top: 0px; left: 0px; border: none; visibility: hidden;"></iframe>
+    <script>
+        // Mobile menu functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mobile menu
+            document.getElementById('mobileMenuToggle')?.addEventListener('click', function() {
+                const mobileSidebar = document.getElementById('mobileSidebar');
+                const menuOverlay = document.getElementById('menuOverlay');
+                
+                mobileSidebar.classList.remove('-translate-x-full');
+                mobileSidebar.classList.add('translate-x-0');
+                menuOverlay.classList.remove('hidden');
+            });
+
+            document.getElementById('closeMobileMenu')?.addEventListener('click', function() {
+                const mobileSidebar = document.getElementById('mobileSidebar');
+                const menuOverlay = document.getElementById('menuOverlay');
+                
+                mobileSidebar.classList.add('-translate-x-full');
+                mobileSidebar.classList.remove('translate-x-0');
+                menuOverlay.classList.add('hidden');
+            });
+
+            document.getElementById('menuOverlay')?.addEventListener('click', function() {
+                const mobileSidebar = document.getElementById('mobileSidebar');
+                const menuOverlay = document.getElementById('menuOverlay');
+                
+                mobileSidebar.classList.add('-translate-x-full');
+                mobileSidebar.classList.remove('translate-x-0');
+                menuOverlay.classList.add('hidden');
+            });
+
+            // Desktop sidebar toggle
+            let sidebarVisible = true; // Track sidebar state (visible by default)
+            
+            document.getElementById('toggleSidebar')?.addEventListener('click', function() {
+                const mainContent = document.getElementById('mainContent');
+                const desktopSidebar = document.getElementById('desktopSidebar');
+                
+                if (sidebarVisible) {
+                    // Hide sidebar
+                    desktopSidebar.classList.remove('md:block');
+                    desktopSidebar.classList.add('hidden');
+                    mainContent.classList.remove('md:ml-64');
+                    mainContent.classList.add('md:ml-0');
+                    sidebarVisible = false;
+                } else {
+                    // Show sidebar
+                    desktopSidebar.classList.remove('hidden');
+                    desktopSidebar.classList.add('md:block');
+                    mainContent.classList.remove('md:ml-0');
+                    mainContent.classList.add('md:ml-64');
+                    sidebarVisible = true;
+                }
+            });
+
+            // User menu
+            document.getElementById('userMenuButton')?.addEventListener('click', function() {
+                const dropdown = document.getElementById('userDropdown');
+                dropdown.classList.toggle('hidden');
+            });
+
+            // Close user menu when clicking outside
+            document.addEventListener('click', function(event) {
+                const userMenu = document.getElementById('userDropdown');
+                const userMenuButton = document.getElementById('userMenuButton');
+                
+                if (userMenu && userMenuButton && !userMenuButton.contains(event.target) && !userMenu.contains(event.target)) {
+                    userMenu.classList.add('hidden');
+                }
+            });
+
+            // Initialize current page submenu state
+            const currentPath = window.location.pathname;
+            if (currentPath.startsWith('/UserManagement')) {
+                const submenu = document.getElementById('employeeSubmenu');
+                const icon = document.getElementById('employeeSubmenuIcon');
+                const mobileSubmenu = document.getElementById('mobileEmployeeSubmenu');
+                const mobileIcon = document.getElementById('mobileEmployeeSubmenuIcon');
+                if (submenu && icon) {
+                    submenu.classList.remove('hidden');
+                    icon.classList.add('rotate-180');
+                }
+                if (mobileSubmenu && mobileIcon) {
+                    mobileSubmenu.classList.remove('hidden');
+                    mobileIcon.classList.add('rotate-180');
+                }
+            }
+
+            // Update time
+            function updateTime() {
+                const now = new Date();
+                const timeDisplay = document.getElementById('mobileTimeDisplay');
+                const currentTimeDisplay = document.getElementById('currentTime');
+                const timeString = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                
+                if (timeDisplay) timeDisplay.textContent = timeString;
+                if (currentTimeDisplay) currentTimeDisplay.textContent = timeString;
+            }
+
+            // Update date
+            function updateDate() {
+                const now = new Date();
+                const dateDisplay = document.getElementById('currentDate');
+                const mobileDateDisplay = document.getElementById('mobileDateDisplay');
+                const dateString = now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                const shortDateString = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                
+                if (dateDisplay) dateDisplay.textContent = dateString;
+                if (mobileDateDisplay) mobileDateDisplay.textContent = shortDateString;
+            }
+
+            // Initial updates
+            updateTime();
+            updateDate();
+
+            // Update time every minute
+            setInterval(updateTime, 60000);
+        });
+
+        // Employee submenu toggle function
+        document.getElementById('employeeMenuButton')?.addEventListener('click', function() {
+            const submenu = document.getElementById('employeeSubmenu');
+            const icon = document.getElementById('employeeSubmenuIcon');
+            submenu.classList.toggle('hidden');
+            icon.classList.toggle('rotate-180');
+        });
+
+        // Mobile employee submenu toggle function
+        document.getElementById('mobileEmployeeMenuButton')?.addEventListener('click', function() {
+            const submenu = document.getElementById('mobileEmployeeSubmenu');
+            const icon = document.getElementById('mobileEmployeeSubmenuIcon');
+            submenu.classList.toggle('hidden');
+            icon.classList.toggle('rotate-180');
+        });
+    </script>
 </body>
 </html>

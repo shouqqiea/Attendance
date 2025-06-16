@@ -1,130 +1,628 @@
-﻿@{
+@{
     ViewBag.Title = "Leave Approval";
-    var pendingRequests = ViewBag.PendingRequests as List<AttendEase.Controllers.LeaveRequestViewModel>;
+    var pendingRequests = ViewBag.PendingRequests as List<LetsCheckIn.Controllers.LeaveRequestViewModel>;
 }
 
-<head>
-    <script src="~/js/LeaveApproval.js"></script>
-</head>
+<div class="min-h-screen bg-gray-50">
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="fixed top-4 right-4 z-50"></div>
+    
+    <!-- Main Content Area -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header Section -->
+        <div class="mb-8">
+            <h1 class="text-2xl font-bold text-gray-900">Leave Management</h1>
+            <p class="mt-1 text-sm text-gray-500">Review and manage employee leave requests</p>
+        </div>
 
-<div class="p-4 md:p-6" id="pendingRequestsContainer">
-    <h3 class="text-lg font-medium text-gray-900 mb-4">Pending Leave Requests</h3>
-
-    @if (pendingRequests != null && pendingRequests.Count > 0)
-    {
-        // Sort: Emergency (priority 1), Pending (priority 2)
-        var sorted = pendingRequests.OrderBy(r => r.Status == "emergency" ? 1 : 2).ThenBy(r => r.SubmittedOn).ToList();
-        foreach (var request in sorted)
-        {
-            var isEmergency = request.Status == "emergency" || request.Emergency == "yes";
-            var borderClass = isEmergency ? "border-l-red-500 bg-red-50" : "border-l-yellow-500 bg-yellow-50";
-            var statusText = isEmergency ? "Emergency" : "Pending";
-            var statusBadgeClass = isEmergency
-            ? "emergency-badge bg-red-100 text-red-800"
-            : "status-badge bg-yellow-100 text-yellow-800";
-            var leaveTypeDisplay = request.LeaveType switch
-            {
-                "vacation" => "Vacation Leave",
-                "sick" => "Sick Leave",
-                "personal" => "Personal Leave",
-                "emergency" => "Emergency Leave",
-                "maternity" => "Maternity/Paternity Leave",
-                "bereavement" => "Bereavement Leave",
-                _ => request.LeaveType
-            };
-            var duration = (request.EndDate - request.StartDate)?.Days + 1 ?? 1;
-            var requestId = $"request{request.Id}";
-            var rejectionFormId = $"rejectionReason{request.Id}";
-            <div id="@requestId" class="leave-request @borderClass border border-gray-200 rounded-r-md shadow-sm mb-4"
-                 data-priority="@(isEmergency ? 1 : 2)"
-                 data-status="@request.Status"
-                 data-date="@request.StartDate?.ToString("yyyy-MM-dd")">
-                <div class="p-4">
-                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-3">
-                        <div class="flex items-center mb-2 md:mb-0">
-                            <div class="status-icon @(isEmergency ? "bg-red-100" : "bg-yellow-100") mr-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 @(isEmergency ? "text-red-600" : "text-yellow-600")" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+        <!-- Pending Requests Section -->
+        <div class="bg-white rounded-lg shadow-sm mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h2 class="text-lg font-medium text-gray-900">Pending Requests</h2>
+                    <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                        <div class="relative">
+                            <input type="text" 
+                                   id="pendingSearch" 
+                                   placeholder="Search pending requests..." 
+                                   class="block w-full sm:w-64 rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring focus:ring-[#a88641] focus:ring-opacity-50 sm:text-sm">
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
                                 </svg>
                             </div>
-                            <h3 class="font-medium text-gray-900">Employee</h3>
                         </div>
-                        <div class="flex items-center space-x-2">
-                            @if (isEmergency)
-                            {
-                                <span class="emergency-badge bg-red-100 text-red-800 text-xs font-medium px-2 py-0.5 rounded-full">Emergency</span>
-                            }
-                            <span class="status-badge bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-0.5 rounded-full">@statusText</span>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-3">
-                        <div>
-                            <p class="text-xs text-gray-500">Leave Type</p>
-                            <p class="text-sm font-medium">@leaveTypeDisplay</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-500">Duration</p>
-                            <p class="text-sm font-medium">@duration @(duration == 1 ? "day" : "days")</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-500">From</p>
-                            <p class="text-sm font-medium">@request.StartDate?.ToString("MMM dd, yyyy")</p>
-                        </div>
-                        <div>
-                            <p class="text-xs text-gray-500">To</p>
-                            <p class="text-sm font-medium">@request.EndDate?.ToString("MMM dd, yyyy")</p>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <p class="text-xs text-gray-500">Reason</p>
-                        <p class="text-sm">@request.Reason</p>
-                    </div>
-
-                    <form asp-action="Reject" asp-controller="LeaveManagement" method="post" class="mb-3 rejection-reason" id="@rejectionFormId">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="id" value="@request.Id" />
-                        <p class="text-xs text-gray-500 mb-1">Rejection Reason</p>
-                        <textarea name="rejectionReason" class="w-full border border-gray-300 rounded-md p-2 text-sm" rows="2" placeholder="Enter reason for rejection..."></textarea>
-                        <button type="submit" class="mt-2 bg-red-500 hover:bg-red-600 text-white font-medium py-1.5 px-3 text-sm rounded-md transition-colors">
-                            Submit Rejection
-                        </button>
-                    </form>
-
-                    <div class="action-buttons flex bg-indigo-50 rounded-md overflow-hidden">
-                        <form asp-action="Approve" asp-controller="LeaveManagement" method="post" class="flex-1">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@request.Id" />
-                            <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-medium py-1.5 px-3 text-sm transition-colors">
-                                Approve
-                            </button>
-                        </form>
-                        <button type="button" onclick="showRejectionInput('@rejectionFormId')" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-medium py-1.5 px-3 text-sm transition-colors">
-                            Reject
-                        </button>
+                        <select id="pendingStatusFilter" 
+                                class="block w-full sm:w-48 rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring focus:ring-[#a88641] focus:ring-opacity-50 sm:text-sm">
+                            <option value="all">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="emergency">Emergency</option>
+                        </select>
                     </div>
                 </div>
             </div>
+
+            <div class="divide-y divide-gray-200">
+                @if (pendingRequests != null && pendingRequests.Any(r => r.Status.ToLower() == "pending" || r.Status.ToLower() == "emergency"))
+                {
+                    foreach (var request in pendingRequests.Where(r => r.Status.ToLower() == "pending" || r.Status.ToLower() == "emergency"))
+                    {
+                        var isEmergency = request.Status == "emergency" || request.Emergency == "yes";
+                        var borderClass = isEmergency ? "border-l-4 border-red-500" : "border-l-4 border-yellow-500";
+                        var statusText = isEmergency ? "Emergency" : "Pending";
+                        var statusBadgeClass = isEmergency
+                            ? "bg-red-100 text-red-800"
+                            : "bg-yellow-100 text-yellow-800";
+                        var duration = (request.EndDate - request.StartDate)?.Days + 1 ?? 1;
+
+                        <div class="p-6 @borderClass hover:bg-gray-50 transition-colors duration-200 pending-request" 
+                             data-status="@(isEmergency ? "emergency" : "pending")">
+                            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                                <!-- Employee Info -->
+                                <div class="flex items-start space-x-4 mb-4 md:mb-0">
+                                    <div class="flex-shrink-0">
+                                        <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                            <span class="text-lg font-medium text-gray-600">
+                                                @request.EmployeeName.Substring(0, 1)
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-base font-medium text-gray-900 employee-name">@request.EmployeeName</h3>
+                                        <p class="text-sm text-gray-500 employee-email">@request.EmployeeEmail</p>
+                                    </div>
+                                </div>
+
+                                <!-- Status Badge -->
+                                <div class="flex items-center space-x-2">
+                                    @if (isEmergency)
+                                    {
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            Emergency
+                                        </span>
+                                    }
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @statusBadgeClass">
+                                        @statusText
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Leave Details -->
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Leave Type</p>
+                                    <p class="mt-1 text-sm text-gray-900 leave-type">@request.LeaveType</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Duration</p>
+                                    <p class="mt-1 text-sm text-gray-900">@duration @(duration == 1 ? "day" : "days")</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Start Date</p>
+                                    <p class="mt-1 text-sm text-gray-900">@request.StartDate?.ToString("MMM dd, yyyy")</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">End Date</p>
+                                    <p class="mt-1 text-sm text-gray-900">@request.EndDate?.ToString("MMM dd, yyyy")</p>
+                                </div>
+                            </div>
+
+                            <!-- Reason -->
+                            <div class="mb-4">
+                                <p class="text-sm font-medium text-gray-500">Reason</p>
+                                <p class="mt-1 text-sm text-gray-900 leave-reason">@request.Reason</p>
+                            </div>
+
+                            <!-- Attachment -->
+                            @if (!string.IsNullOrEmpty(request.AttachmentFileName))
+                            {
+                                <div class="mb-4">
+                                    <a href="/LeaveManagement/DownloadAttachment/@request.Id" 
+                                       class="inline-flex items-center text-sm text-[#a88641] hover:text-[#916f34]">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clip-rule="evenodd" />
+                                        </svg>
+                                        Download Attachment
+                                    </a>
+                                </div>
+                            }
+
+                            <!-- Action Buttons -->
+                            <div class="flex flex-col sm:flex-row gap-3">
+                                <button onclick="approveRequest(@request.Id)" 
+                                        class="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                    Approve
+                                </button>
+                                <button onclick="showRejectionInput(@request.Id)" 
+                                        class="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                    Reject
+                                </button>
+                            </div>
+
+                            <!-- Rejection Form (Hidden by default) -->
+                            <div id="rejectionForm@(request.Id)" class="mt-4 hidden">
+                                <form onsubmit="rejectRequest(@request.Id, event)" class="space-y-3">
+                                    @Html.AntiForgeryToken()
+                                    <div>
+                                        <label for="rejectionReason@(request.Id)" class="block text-sm font-medium text-gray-700">Rejection Reason</label>
+                                        <textarea id="rejectionReason@(request.Id)" 
+                                                  name="rejectionReason" 
+                                                  rows="3" 
+                                                  class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm"
+                                                  required></textarea>
+                                    </div>
+                                    <div class="flex justify-end space-x-3">
+                                        <button type="button" 
+                                                onclick="hideRejectionInput(@request.Id)"
+                                                class="inline-flex justify-center items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641]">
+                                            Cancel
+                                        </button>
+                                        <button type="submit"
+                                                class="inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                            Confirm Rejection
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="p-6 text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p class="text-gray-500 mb-1">No pending leave requests</p>
+                        <p class="text-sm text-gray-400">All leave requests have been processed</p>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- History Section -->
+        <div class="bg-white rounded-lg shadow-sm">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h2 class="text-lg font-medium text-gray-900">Leave History</h2>
+                    <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                        <div class="relative">
+                            <input type="text" 
+                                   id="historySearch" 
+                                   placeholder="Search history..." 
+                                   class="block w-full sm:w-64 rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring focus:ring-[#a88641] focus:ring-opacity-50 sm:text-sm">
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                        </div>
+                        <select id="historyStatusFilter" 
+                                class="block w-full sm:w-48 rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring focus:ring-[#a88641] focus:ring-opacity-50 sm:text-sm">
+                            <option value="all">All Status</option>
+                            <option value="approved">Approved</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div id="historyContainer" class="divide-y divide-gray-200 max-h-[600px] overflow-y-auto">
+                @{
+                    var historyRequests = pendingRequests?.Where(r => r.Status != "pending" && r.Status != "emergency").ToList() 
+                        ?? new List<LetsCheckIn.Controllers.LeaveRequestViewModel>();
+                }
+
+                @if (historyRequests.Any())
+                {
+                    foreach (var request in historyRequests)
+                    {
+                        var statusClass = request.Status.ToLower() switch
+                        {
+                            "approved" => "bg-green-100 text-green-800",
+                            "rejected" => "bg-red-100 text-red-800",
+                            "cancelled" => "bg-gray-100 text-gray-800",
+                            _ => "bg-yellow-100 text-yellow-800"
+                        };
+
+                        <div class="p-6 hover:bg-gray-50 transition-colors duration-200 leave-history-item" 
+                             data-status="@request.Status.ToLower()">
+                            <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+                                <!-- Employee Info -->
+                                <div class="flex items-start space-x-4 mb-4 md:mb-0">
+                                    <div class="flex-shrink-0">
+                                        <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                            <span class="text-lg font-medium text-gray-600">
+                                                @request.EmployeeName.Substring(0, 1)
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h3 class="text-base font-medium text-gray-900 employee-name">@request.EmployeeName</h3>
+                                        <p class="text-sm text-gray-500 employee-email">@request.EmployeeEmail</p>
+                                    </div>
+                                </div>
+
+                                <!-- Status Badge -->
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @statusClass">
+                                    @request.Status
+                                </span>
+                            </div>
+
+                            <!-- Leave Details -->
+                            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Leave Type</p>
+                                    <p class="mt-1 text-sm text-gray-900 leave-type">@request.LeaveType</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Duration</p>
+                                    <p class="mt-1 text-sm text-gray-900">@((request.EndDate - request.StartDate)?.Days + 1 ?? 0) days</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">Start Date</p>
+                                    <p class="mt-1 text-sm text-gray-900">@request.StartDate?.ToString("MMM dd, yyyy")</p>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-500">End Date</p>
+                                    <p class="mt-1 text-sm text-gray-900">@request.EndDate?.ToString("MMM dd, yyyy")</p>
+                                </div>
+                            </div>
+
+                            <!-- Reason -->
+                            <div class="mb-4">
+                                <p class="text-sm font-medium text-gray-500">Reason</p>
+                                <p class="mt-1 text-sm text-gray-900 leave-reason">@request.Reason</p>
+                            </div>
+
+                            @if (!string.IsNullOrEmpty(request.RejectionReason))
+                            {
+                                <div class="mb-4">
+                                    <p class="text-sm font-medium text-gray-500">Rejection Reason</p>
+                                    <p class="mt-1 text-sm text-red-600 bg-red-50 p-3 rounded-md border border-red-100">@request.RejectionReason</p>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(request.AttachmentFileName))
+                            {
+                                <div>
+                                    <a href="/LeaveManagement/DownloadAttachment/@request.Id" 
+                                       class="inline-flex items-center text-sm text-[#a88641] hover:text-[#916f34]">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clip-rule="evenodd" />
+                                        </svg>
+                                        Download Attachment
+                                    </a>
+                                </div>
+                            }
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="p-6 text-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p class="text-gray-500 mb-1">No leave history found</p>
+                        <p class="text-sm text-gray-400">There are no processed leave requests</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Approval Confirmation Modal -->
+<div id="approvalConfirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-sm mx-4 w-full transform transition-all">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium text-gray-900">Confirm Approval</h3>
+            <button onclick="closeApprovalConfirmModal()" class="text-gray-400 hover:text-gray-500">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="mb-6">
+            <p class="text-sm text-gray-600">Are you sure you want to approve this leave request?</p>
+        </div>
+        <input type="hidden" id="approvalRequestId" />
+        <div class="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
+            <button type="button" onclick="closeApprovalConfirmModal()" 
+                    class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641]">
+                Cancel
+            </button>
+            <button type="button" onclick="confirmApproveRequest()" 
+                    class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                Confirm Approval
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Rejection Confirmation Modal -->
+<div id="rejectionConfirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-sm mx-4 w-full transform transition-all">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium text-gray-900">Confirm Rejection</h3>
+            <button onclick="closeRejectionConfirmModal()" class="text-gray-400 hover:text-gray-500">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="mb-6">
+            <p class="text-sm text-gray-600">Are you sure you want to reject this leave request? This action cannot be undone.</p>
+        </div>
+        <input type="hidden" id="rejectionRequestId" />
+        <div class="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
+            <button type="button" onclick="closeRejectionConfirmModal()" 
+                    class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641]">
+                Cancel
+            </button>
+            <button type="button" onclick="confirmRejectRequest()" 
+                    class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                Confirm Rejection
+            </button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Initialize filters and search when the document is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeFilters();
+        });
+
+        // Show approval confirmation modal
+        function approveRequest(requestId) {
+            if (!requestId) {
+                console.error('Request ID is required');
+                return;
+            }
+            document.getElementById('approvalRequestId').value = requestId;
+            const modal = document.getElementById('approvalConfirmModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
         }
-    }
-    else
-    {
-        <div class="text-gray-500">No pending leave requests.</div>
-    }
-</div>
 
-<!-- History Section Toggle -->
-<div class="border-t border-gray-200 px-4 md:px-6 py-3">
-    <button id="toggleHistory" class="w-full flex justify-between items-center text-left">
-        <span class="font-medium text-gray-700">Leave History</span>
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 chevron-icon" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
-        </svg>
-    </button>
-</div>
+        // Close approval confirmation modal
+        function closeApprovalConfirmModal() {
+            const modal = document.getElementById('approvalConfirmModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.getElementById('approvalRequestId').value = '';
+        }
 
-<!-- History Section Content -->
-<div id="historySection" class="px-4 md:px-6 pb-6">
-    <!-- History items will be dynamically managed by LeaveApproval.js -->
-</div>
+        // Confirm approval request
+        async function confirmApproveRequest() {
+            const requestId = document.getElementById('approvalRequestId').value;
+            if (!requestId) {
+                console.error('Request ID is required');
+                return;
+            }
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
+            try {
+                const response = await fetch('/LeaveManagement/Approve', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify(requestId)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('success', 'Leave request approved successfully');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showNotification('error', result.message || 'Failed to approve request');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('error', 'An error occurred while approving the request');
+            } finally {
+                closeApprovalConfirmModal();
+            }
+        }
+
+        // Show rejection form
+        function showRejectionInput(requestId) {
+            if (!requestId) {
+                console.error('Request ID is required');
+                return;
+            }
+            const form = document.getElementById(`rejectionForm${requestId}`);
+            if (form) {
+                form.classList.remove('hidden');
+            }
+        }
+
+        // Hide rejection form
+        function hideRejectionInput(requestId) {
+            if (!requestId) {
+                console.error('Request ID is required');
+                return;
+            }
+            const form = document.getElementById(`rejectionForm${requestId}`);
+            if (form) {
+                form.classList.add('hidden');
+                // Clear the textarea
+                const textarea = form.querySelector('textarea');
+                if (textarea) {
+                    textarea.value = '';
+                }
+            }
+        }
+
+        // Reject request
+        async function rejectRequest(requestId, event) {
+            if (!requestId) {
+                console.error('Request ID is required');
+                return;
+            }
+
+            event.preventDefault();
+            const form = event.target;
+            const reasonInput = form.querySelector(`#rejectionReason${requestId}`);
+            
+            if (!reasonInput || !reasonInput.value.trim()) {
+                showNotification('error', 'Please provide a rejection reason');
+                return;
+            }
+
+            // Store the rejection reason in a data attribute
+            const modal = document.getElementById('rejectionConfirmModal');
+            modal.setAttribute('data-rejection-reason', reasonInput.value.trim());
+            document.getElementById('rejectionRequestId').value = requestId;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        // Confirm reject request
+        async function confirmRejectRequest() {
+            const requestId = document.getElementById('rejectionRequestId').value;
+            if (!requestId) {
+                console.error('Request ID is required');
+                return;
+            }
+
+            const modal = document.getElementById('rejectionConfirmModal');
+            const rejectionReason = modal.getAttribute('data-rejection-reason');
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            if (!rejectionReason) {
+                showNotification('error', 'Please provide a rejection reason');
+                return;
+            }
+
+            try {
+                const response = await fetch('/LeaveManagement/Reject', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify({
+                        id: parseInt(requestId),
+                        rejectionReason: rejectionReason
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showNotification('success', 'Leave request rejected successfully');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showNotification('error', result.message || 'Failed to reject request');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('error', 'An error occurred while rejecting the request');
+            } finally {
+                closeRejectionConfirmModal();
+            }
+        }
+
+        function showNotification(type, message) {
+            const container = document.getElementById('notificationContainer');
+            if (!container) return;
+
+            const notification = document.createElement('div');
+            notification.className = `p-4 mb-4 rounded-md ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            notification.innerHTML = message;
+            
+            container.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+
+        function initializeFilters() {
+            // Pending requests filters
+            const pendingSearch = document.getElementById('pendingSearch');
+            const pendingStatusFilter = document.getElementById('pendingStatusFilter');
+            
+            if (pendingSearch && pendingStatusFilter) {
+                pendingSearch.addEventListener('input', () => filterPendingRequests());
+                pendingStatusFilter.addEventListener('change', () => filterPendingRequests());
+            }
+
+            // History filters
+            const historySearch = document.getElementById('historySearch');
+            const historyStatusFilter = document.getElementById('historyStatusFilter');
+            
+            if (historySearch && historyStatusFilter) {
+                historySearch.addEventListener('input', () => filterHistoryRequests());
+                historyStatusFilter.addEventListener('change', () => filterHistoryRequests());
+            }
+        }
+
+        function filterPendingRequests() {
+            const searchTerm = document.getElementById('pendingSearch').value.toLowerCase();
+            const statusFilter = document.getElementById('pendingStatusFilter').value;
+            const requests = document.querySelectorAll('.pending-request');
+
+            requests.forEach(request => {
+                const employeeName = request.querySelector('.employee-name').textContent.toLowerCase();
+                const employeeEmail = request.querySelector('.employee-email').textContent.toLowerCase();
+                const leaveType = request.querySelector('.leave-type').textContent.toLowerCase();
+                const reason = request.querySelector('.leave-reason').textContent.toLowerCase();
+                const status = request.dataset.status.toLowerCase();
+
+                const matchesSearch = employeeName.includes(searchTerm) || 
+                                    employeeEmail.includes(searchTerm) || 
+                                    leaveType.includes(searchTerm) || 
+                                    reason.includes(searchTerm);
+
+                const matchesStatus = statusFilter === 'all' || status === statusFilter;
+
+                request.style.display = matchesSearch && matchesStatus ? 'block' : 'none';
+            });
+        }
+
+        function filterHistoryRequests() {
+            const searchTerm = document.getElementById('historySearch').value.toLowerCase();
+            const statusFilter = document.getElementById('historyStatusFilter').value;
+            const requests = document.querySelectorAll('.leave-history-item');
+
+            requests.forEach(request => {
+                const employeeName = request.querySelector('.employee-name').textContent.toLowerCase();
+                const employeeEmail = request.querySelector('.employee-email').textContent.toLowerCase();
+                const leaveType = request.querySelector('.leave-type').textContent.toLowerCase();
+                const reason = request.querySelector('.leave-reason').textContent.toLowerCase();
+                const status = request.dataset.status.toLowerCase();
+
+                const matchesSearch = employeeName.includes(searchTerm) || 
+                                    employeeEmail.includes(searchTerm) || 
+                                    leaveType.includes(searchTerm) || 
+                                    reason.includes(searchTerm);
+
+                const matchesStatus = statusFilter === 'all' || status === statusFilter;
+
+                request.style.display = matchesSearch && matchesStatus ? 'block' : 'none';
+            });
+        }
+
+        function closeRejectionConfirmModal() {
+            const modal = document.getElementById('rejectionConfirmModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.getElementById('rejectionRequestId').value = '';
+            modal.removeAttribute('data-rejection-reason');
+        }
+    </script>
+}

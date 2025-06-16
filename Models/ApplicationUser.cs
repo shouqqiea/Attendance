@@ -1,13 +1,15 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
+using LetsCheckIn.Models.db;
 
-namespace AttendEase.Models
+namespace LetsCheckIn.Models
 {
     public class ApplicationUser : IdentityUser
     {
-        // You can add custom fields here if needed (e.g., FullName, BranchId, etc.)
-    }
+        public int? BranchId { get; set; }
+        public DateTime? LastLoginDate { get; set; }
 
-    public class ApplicationRole : IdentityRole
-    {
+        // Navigation properties
+        public virtual Employee? Employee { get; set; }
+        public virtual ICollection<DynamicUserRole> UserRoles { get; set; } = new HashSet<DynamicUserRole>();
     }
 }

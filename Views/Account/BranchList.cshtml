@@ -1,0 +1,435 @@
+@using LetsCheckIn.Models.db
+@model IEnumerable<Branch>
+@{
+    ViewBag.Title = "Branch Management";
+    Layout = "~/Views/Shared/_AuthenticatedLayout.cshtml";
+}
+
+<div id="notificationContainer" class="fixed top-4 right-4 z-50"></div>
+
+<!-- Leave Type Management Modal -->
+<div id="leaveTypeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="flex flex-col">
+            <div class="flex justify-between items-center pb-3">
+                <p class="text-2xl font-bold text-gray-900">Manage Leave Types</p>
+                <button onclick="closeLeaveTypeModal()" class="text-gray-400 hover:text-gray-500">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="mt-4">
+                <form id="leaveTypeForm" class="space-y-4">
+                    <input type="hidden" id="leaveTypeId" />
+                    <input type="hidden" id="branchId" />
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Leave Type Name</label>
+                        <input type="text" id="leaveName" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Description</label>
+                        <textarea id="leaveDescription" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" rows="2"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Default Days</label>
+                        <input type="number" id="defaultDays" min="1" max="365" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required />
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="isActive" class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
+                        <label class="ml-2 block text-sm text-gray-900">Active</label>
+                    </div>
+                    <div class="flex justify-end space-x-3 pt-4">
+                        <button type="button" onclick="closeLeaveTypeModal()" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 text-sm font-medium text-white bg-[#a88641] border border-transparent rounded-md hover:bg-[#916f34]">
+                            Save
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="mt-6">
+                <h3 class="text-lg font-medium text-gray-900 mb-3">Existing Leave Types</h3>
+                <div id="leaveTypesList" class="space-y-2">
+                    <!-- Leave types will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="p-4 sm:p-6 max-w-7xl mx-auto">
+    <!-- Header Section -->
+    <div class="mb-6">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Branch Management</h1>
+        <p class="text-sm sm:text-base text-gray-600">Manage your organization's branches and their settings</p>
+    </div>
+
+    <!-- Actions Section -->
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
+        <div class="flex flex-col sm:flex-row gap-4 items-stretch">
+            <!-- Search Form -->
+            <form method="get" class="flex-grow">
+                @Html.AntiForgeryToken()
+                <div class="relative">
+                    <input type="text" 
+                           name="search" 
+                           value="@(Context.Request.Query["search"])" 
+                           placeholder="Search branches..." 
+                           class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#a88641] focus:border-[#a88641] transition-colors"
+                           aria-label="Search branches" />
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                </div>
+            </form>
+            <!-- Add Branch Button -->
+            <a href="/Account/CreateBranch" class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#a88641] hover:bg-[#916f34] min-w-[120px]">
+                <svg class="h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Branch
+            </a>
+        </div>
+    </div>
+
+    <!-- Branches Grid -->
+    <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <!-- Mobile View (Card Layout) -->
+            <div class="sm:hidden">
+                @if (!Model.Any())
+                {
+                    <div class="p-6 text-center">
+                        <svg class="h-12 w-12 text-[#a88641] mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <p class="text-gray-500 mb-1">No branches found</p>
+                        <p class="text-sm text-gray-400">Add a new branch to get started</p>
+                    </div>
+                }
+                @foreach (var branch in Model)
+                {
+                    <div class="p-4 border-b border-gray-200">
+                        <div class="flex justify-between items-start mb-3">
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900">@branch.BranchName</h3>
+                                <p class="text-sm text-gray-500">Created @branch.CreatedDate.ToString("MMM dd, yyyy")</p>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div>
+                                <p class="text-sm font-medium text-gray-500">Admin</p>
+                                <p class="text-sm text-gray-900">@(branch.Admin?.Name ?? "-")</p>
+                                <p class="text-sm text-gray-500">@(branch.Admin?.Email ?? "-")</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-500 mb-1">Features</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @(branch.BranchSetup?.EnableLocation == true ? "bg-[#a88641] bg-opacity-10 text-[#916f34]" : "bg-red-100 text-red-800")">
+                                        @(branch.BranchSetup?.EnableLocation == true ? "✓" : "✕") Location
+                                    </span>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @(branch.BranchSetup?.EnableNetwork == true ? "bg-[#a88641] bg-opacity-10 text-[#916f34]" : "bg-red-100 text-red-800")">
+                                        @(branch.BranchSetup?.EnableNetwork == true ? "✓" : "✕") Network
+                                    </span>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @(branch.BranchSetup?.EnableBiometric == true ? "bg-[#a88641] bg-opacity-10 text-[#916f34]" : "bg-red-100 text-red-800")">
+                                        @(branch.BranchSetup?.EnableBiometric == true ? "✓" : "✕") Face
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex gap-2 pt-2">
+                                <a href="/Account/UpdateBranch/@branch.BranchId" 
+                                   class="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-[#a88641] text-[#a88641] text-sm font-medium rounded-md hover:bg-[#a88641] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#a88641] focus:ring-offset-2 transition-colors">
+                                    <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    Edit
+                                </a>
+                                <a href="/Account/ManageBranch/@branch.BranchId" 
+                                   class="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-[#a88641] text-[#a88641] text-sm font-medium rounded-md hover:bg-[#a88641] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#a88641] focus:ring-offset-2 transition-colors">
+                                    <svg class="h-4 w-4 mr-1.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    Manage
+                                </a>
+                                <button type="button" 
+                                        onclick="showDeleteModal(@branch.BranchId, '@branch.BranchName')"
+                                        class="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-red-300 text-red-700 text-sm font-medium rounded-md hover:text-red-500 hover:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors">
+                                    <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Desktop View (Table Layout) -->
+            <table class="hidden sm:table min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch Details</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin Information</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Features</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500">
+                                <div class="flex flex-col items-center justify-center">
+                                    <svg class="h-12 w-12 text-[#a88641] mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                    <p class="text-gray-500 mb-1">No branches found</p>
+                                    <p class="text-sm text-gray-400">Add a new branch to get started</p>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @foreach (var branch in Model)
+                    {
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="text-sm font-medium text-gray-900">@branch.BranchName</div>
+                                <div class="text-sm text-gray-500">Created @branch.CreatedDate.ToString("MMM dd, yyyy")</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="text-sm text-gray-900">@(branch.Admin?.Name ?? "-")</div>
+                                <div class="text-sm text-gray-500">@(branch.Admin?.Email ?? "-")</div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @(branch.BranchSetup?.EnableLocation == true ? "bg-[#a88641] bg-opacity-10 text-[#916f34]" : "bg-red-100 text-red-800")">
+                                        @(branch.BranchSetup?.EnableLocation == true ? "✓" : "✕") Location
+                                    </span>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @(branch.BranchSetup?.EnableNetwork == true ? "bg-[#a88641] bg-opacity-10 text-[#916f34]" : "bg-red-100 text-red-800")">
+                                        @(branch.BranchSetup?.EnableNetwork == true ? "✓" : "✕") Network
+                                    </span>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @(branch.BranchSetup?.EnableBiometric == true ? "bg-[#a88641] bg-opacity-10 text-[#916f34]" : "bg-red-100 text-red-800")">
+                                        @(branch.BranchSetup?.EnableBiometric == true ? "✓" : "✕") Face
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center space-x-3">
+                                    <a href="/Account/UpdateBranch/@branch.BranchId" class="text-[#a88641] hover:text-[#916f34]">
+                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                    </a>
+                                    <a href="/Account/ManageBranch/@branch.BranchId" class="text-[#a88641] hover:text-[#916f34]">
+                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        </svg>
+                                    </a>
+                                    <button onclick="showDeleteModal(@branch.BranchId, '@branch.BranchName')" class="text-red-600 hover:text-red-800">
+                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-sm mx-4 w-full transform transition-all">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium text-gray-900">Confirm Delete</h3>
+            <button onclick="closeDeleteModal()" class="text-gray-400 hover:text-gray-500">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="mb-6">
+            <p class="text-sm text-gray-600">Are you sure you want to delete "<span id="branchNameToDelete" class="font-medium"></span>"? This action cannot be undone.</p>
+        </div>
+        <input type="hidden" id="branchIdToDelete" />
+        <div class="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
+            <button type="button" onclick="closeDeleteModal()" 
+                    class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641]">
+                Cancel
+            </button>
+            <button type="button" onclick="confirmDeleteBranch()" 
+                    class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Update Branch Modal -->
+<div id="updateModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-2xl mx-4 w-full transform transition-all">
+        <div class="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center">
+                <h3 class="text-xl font-semibold text-gray-900">Update Branch</h3>
+                <span class="ml-2 bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded-full">HR</span>
+            </div>
+            <button type="button" onclick="closeUpdateModal()" class="text-gray-400 hover:text-gray-500 focus:outline-none">
+                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <form id="updateBranchForm" class="px-6 py-4" onsubmit="updateBranch(event)">
+            <input type="hidden" id="updateBranchId" />
+            
+            <div class="space-y-6">
+                <!-- Branch Information Section -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">Branch Information</h4>
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-4">
+                        <div>
+                            <label for="updateBranchName" class="block text-sm font-medium text-gray-700">Branch Name</label>
+                            <input type="text" id="updateBranchName" name="branchName" 
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring-[#a88641] sm:text-sm" required />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Information Section -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">Admin Information</h4>
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-4">
+                        <div>
+                            <label for="updateAdminName" class="block text-sm font-medium text-gray-700">Admin Name</label>
+                            <input type="text" id="updateAdminName" name="adminName" 
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring-[#a88641] sm:text-sm" required />
+                        </div>
+                        <div>
+                            <label for="updateAdminEmail" class="block text-sm font-medium text-gray-700">Admin Email</label>
+                            <input type="email" id="updateAdminEmail" name="adminEmail" 
+                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring-[#a88641] sm:text-sm" required />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Features Section -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">Features Configuration</h4>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="text-sm text-gray-500 mb-3">Enable or disable features for this branch. At least Location must be enabled.</p>
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <input type="checkbox" id="updateEnableLocation" name="enableLocation" 
+                                       class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
+                                <label for="updateEnableLocation" class="ml-3 block text-sm text-gray-700">
+                                    <span class="font-medium">Location</span>
+                                    <span class="text-gray-500 block text-xs">Enable location-based attendance tracking</span>
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="updateEnableNetwork" name="enableNetwork" 
+                                       class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
+                                <label for="updateEnableNetwork" class="ml-3 block text-sm text-gray-700">
+                                    <span class="font-medium">Network</span>
+                                    <span class="text-gray-500 block text-xs">Restrict attendance to specific network IPs</span>
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="updateEnableBiometric" name="enableBiometric" 
+                                       class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
+                                <label for="updateEnableBiometric" class="ml-3 block text-sm text-gray-700">
+                                    <span class="font-medium">Face Recognition</span>
+                                    <span class="text-gray-500 block text-xs">Enable facial recognition for attendance</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 border-t border-gray-200 pt-4 flex justify-end gap-3">
+                <button type="button" onclick="closeUpdateModal()" 
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" 
+                        class="px-4 py-2 text-sm font-medium text-white bg-[#a88641] border border-transparent rounded-md shadow-sm hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
+                    Update Branch
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function showDeleteModal(branchId, branchName) {
+            document.getElementById('branchIdToDelete').value = branchId;
+            document.getElementById('branchNameToDelete').textContent = branchName;
+            const modal = document.getElementById('deleteModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeDeleteModal() {
+            const modal = document.getElementById('deleteModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.getElementById('branchIdToDelete').value = '';
+            document.getElementById('branchNameToDelete').textContent = '';
+        }
+
+        function confirmDeleteBranch() {
+            const branchId = document.getElementById('branchIdToDelete').value;
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
+            fetch('/Account/DeleteBranch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify(branchId)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification('success', 'Branch deleted successfully');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showNotification('error', data.message || 'Failed to delete branch');
+                }
+                closeDeleteModal();
+            })
+            .catch(error => {
+                showNotification('error', 'An error occurred while deleting the branch');
+                closeDeleteModal();
+            });
+        }
+
+        function showNotification(type, message) {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `p-4 mb-4 rounded-md ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            notification.innerHTML = message;
+            
+            container.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+    </script>
+}

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PERKESO KL - Display Board</title>
+    <style>
+        :root {
+            --perkeso-blue: #0088cc;
+            --perkeso-light-blue: #00b0f0;
+            --counter-blue: #0070c0;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: black;
+            overflow: hidden;
+        }
+
+        .display-container {
+            width: 1920px;
+            height: 1080px;
+            position: relative;
+            background-color: #00bffe;
+            display: flex;
+        }
+
+        .left-content {
+            width: 1102px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .header {
+            height: 120px;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            justify-content: space-between;
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+        }
+
+        .jata-logo {
+            width: 100px;
+            height: 100px;
+            background-color: white;
+            margin-right: 20px;
+        }
+
+        .perkeso-logo {
+            width: 100px;
+            height: 100px;
+            background-color: white;
+        }
+
+        .date-time {
+            display: flex;
+            gap: 20px;
+        }
+
+        .date, .time {
+            background-color: white;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .left-section {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .main-image {
+            width: 100%;
+            height: 65%;
+            background-color: #1a1a1a;
+            margin-bottom: 20px;
+        }
+
+        .procedure-section {
+            background-color: #d9d9d9;
+            padding: 20px;
+        }
+
+        .procedure-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .procedure-steps {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        .step {
+            text-align: center;
+            width: 150px;
+        }
+
+        .step-icon {
+            width: 80px;
+            height: 80px;
+            background-color: var(--perkeso-light-blue);
+            margin: 0 auto 10px;
+        }
+
+        .step-text {
+            font-size: 14px;
+            line-height: 1.2;
+        }
+
+        .right-section {
+            width: 818px;
+            height: 1080px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            padding: 0;
+        }
+
+        .queue-item {
+            display: flex;
+            width: 818px;
+            height: 255.75px;
+        }
+
+        .number {
+            width: 409px;
+            background-color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 100px;
+            font-weight: bold;
+            border-radius: 10px 0 0 10px;
+        }
+
+        .counter {
+            width: 409px;
+            background-color: #0084FF;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 48px;
+            font-weight: bold;
+            border-radius: 0 10px 10px 0;
+        }
+
+        .footer {
+            height: 60px;
+            background-color: black;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 1102px;
+        }
+    </style>
+</head>
+<body>
+    <div class="display-container">
+        <div class="left-content">
+            <div class="header">
+                <div class="logo-group">
+                    <div class="jata-logo"></div>
+                    <div class="perkeso-logo"></div>
+                </div>
+                <div class="date-time">
+                    <div class="date">Selasa 05-10-2021</div>
+                    <div class="time">10:30 AM</div>
+                </div>
+            </div>
+
+            <div class="left-section">
+                <div class="main-image"></div>
+                <div class="procedure-section">
+                    <div class="procedure-title">PROCEDURE TO CHECK YOUR ELIGIBILITY FOR THE HSP VOUCHER</div>
+                    <div class="procedure-steps">
+                        <div class="step">
+                            <div class="step-icon">1</div>
+                            <div class="step-text">Click menu MYHSP STATUS on HSP Portal and enter your MyKAD number</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-icon">2</div>
+                            <div class="step-text">Enter your active mobile phone number</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-icon">3</div>
+                            <div class="step-text">You will receive a TAC number via SMS</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-icon">4</div>
+                            <div class="step-text">Enter the TAC number</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-icon">5</div>
+                            <div class="step-text">You will receive your voucher number by SMS</div>
+                        </div>
+                        <div class="step">
+                            <div class="step-icon">6</div>
+                            <div class="step-text">Bring your MyKAD and voucher number received by SMS to any HSP Panel Clinic for health screening</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer">
+                Selamat datang ke PERKESO KL
+            </div>
+        </div>
+
+        <div class="right-section">
+            <div class="queue-item">
+                <div class="number">1001</div>
+                <div class="counter">Kaunter 2</div>
+            </div>
+            <div class="queue-item">
+                <div class="number">1002</div>
+                <div class="counter">Kaunter 4</div>
+            </div>
+            <div class="queue-item">
+                <div class="number">1003</div>
+                <div class="counter">Kaunter 4</div>
+            </div>
+            <div class="queue-item">
+                <div class="number">1004</div>
+                <div class="counter">Kaunter 4</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

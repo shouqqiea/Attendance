@@ -1,0 +1,383 @@
+@model LetsCheckIn.Controllers.AssignUsersViewModel
+@{
+    ViewBag.Title = "Assign Users";
+    ViewData["Title"] = "Assign Users - " + Model.Role.RoleName;
+    Layout = "~/Views/Shared/_AuthenticatedLayout.cshtml";
+}
+
+<div class="min-h-screen bg-gray-50">
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="fixed top-4 right-4 z-50 w-full max-w-xs"></div>
+
+    <!-- Main Content Area -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <!-- Header Section -->
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
+            <div class="flex-1">
+                <div class="flex items-center mb-2">
+                    <a href="/RoleManagement/Details/@Model.Role.RoleId" class="text-[#a88641] hover:text-[#916f34] mr-3 p-1 rounded-md hover:bg-gray-100">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </a>
+                    <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Assign Users</h1>
+                </div>
+                <div class="space-y-1">
+                    <p class="text-sm text-gray-500">
+                        <span class="font-medium">Role:</span> @Model.Role.RoleName
+                        <span class="ml-2 px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full @(Model.Role.IsSystemRole ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800")">
+                            @(Model.Role.IsSystemRole ? "System" : "Custom")
+                        </span>
+                    </p>
+                    <p class="text-sm text-gray-500">
+                        <span class="font-medium">Role Type:</span> @(Model.Role.IsSystemRole ? "System Role" : "Custom Role")
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Search and Filter Section -->
+        <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="searchInput" class="block text-sm font-medium text-gray-700 mb-2">Search Users</label>
+                    <input type="text" id="searchInput" 
+                           class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm"
+                           placeholder="Search by name or email">
+                </div>
+                <div class="flex items-end">
+                    <button id="clearSearch" 
+                            class="w-full md:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] min-h-[38px]">
+                        Clear Search
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+            <!-- Available Users Section -->
+            <div class="bg-white rounded-lg shadow-sm order-1">
+                <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
+                        <div>
+                            <h2 class="text-lg font-medium text-gray-900">Available Users</h2>
+                            <p class="text-sm text-gray-500">Users that can be assigned to this role</p>
+                        </div>
+                        <span id="availableCount" class="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                            @Model.AvailableUsers.Count users
+                        </span>
+                    </div>
+                </div>
+                <div class="p-4 sm:p-6">
+                    <div id="availableUsers" class="space-y-3 max-h-96 overflow-y-auto">
+                        @if (Model.AvailableUsers.Any())
+                        {
+                            @foreach (var user in Model.AvailableUsers)
+                            {
+                                <div class="user-card available-user flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                                     data-name="@user.FullName.ToLower()" 
+                                     data-email="@user.Email.ToLower()">
+                                    <div class="flex-1 min-w-0 mb-3 sm:mb-0">
+                                        <h4 class="text-sm font-medium text-gray-900 truncate">@user.FullName</h4>
+                                        <p class="text-sm text-gray-500 truncate">@user.Email</p>
+                                        <p class="text-xs text-gray-400">@user.BranchName</p>
+                                    </div>
+                                    <div class="flex justify-end sm:ml-4">
+                                        <button onclick="assignUser('@user.UserId', @Model.Role.RoleId, '@user.FullName')" 
+                                                class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-[#a88641] border border-transparent rounded-md hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors min-h-[44px] min-w-[80px]">
+                                            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                            </svg>
+                                            <span class="hidden sm:inline">Assign</span>
+                                            <span class="sm:hidden">Add</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-center py-8 text-gray-500">
+                                <svg class="mx-auto h-8 w-8 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                                </svg>
+                                <p class="text-sm italic">No users available for assignment</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assigned Users Section -->
+            <div class="bg-white rounded-lg shadow-sm order-2">
+                <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-2 sm:space-y-0">
+                        <div>
+                            <h2 class="text-lg font-medium text-gray-900">Assigned Users</h2>
+                            <p class="text-sm text-gray-500">Users currently assigned to this role</p>
+                        </div>
+                        <span id="assignedCount" class="text-sm text-gray-500 bg-green-100 px-2 py-1 rounded-full">
+                            @Model.AssignedUsers.Count users
+                        </span>
+                    </div>
+                </div>
+                <div class="p-4 sm:p-6">
+                    <div id="assignedUsers" class="space-y-3 max-h-96 overflow-y-auto">
+                        @if (Model.AssignedUsers.Any())
+                        {
+                            @foreach (var user in Model.AssignedUsers)
+                            {
+                                <div class="user-card assigned-user flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 border border-green-200 bg-green-50 rounded-lg hover:bg-green-100 transition-colors"
+                                     data-name="@user.FullName.ToLower()" 
+                                     data-email="@user.Email.ToLower()">
+                                    <div class="flex-1 min-w-0 mb-3 sm:mb-0">
+                                        <h4 class="text-sm font-medium text-gray-900 truncate">@user.FullName</h4>
+                                        <p class="text-sm text-gray-500 truncate">@user.Email</p>
+                                        <p class="text-xs text-gray-400">@user.BranchName</p>
+                                    </div>
+                                    @if (!Model.Role.IsSystemRole)
+                                    {
+                                        <div class="flex justify-end sm:ml-4">
+                                            <button onclick="removeUser('@user.UserId', @Model.Role.RoleId, '@user.FullName')" 
+                                                    class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors min-h-[44px] min-w-[80px]">
+                                                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                                                </svg>
+                                                <span class="hidden sm:inline">Remove</span>
+                                                <span class="sm:hidden">Del</span>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-center py-8 text-gray-500">
+                                <svg class="mx-auto h-8 w-8 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                                </svg>
+                                <p class="text-sm italic">No users assigned to this role</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mobile Action Bar (Fixed at bottom on mobile) -->
+        <div class="fixed bottom-4 left-4 right-4 sm:hidden bg-white rounded-lg shadow-lg border p-4 z-40">
+            <div class="flex justify-between items-center">
+                <div class="text-sm text-gray-600">
+                    <span id="mobileAvailableCount">@Model.AvailableUsers.Count</span> available, 
+                    <span id="mobileAssignedCount">@Model.AssignedUsers.Count</span> assigned
+                </div>
+                <a href="/RoleManagement/Details/@Model.Role.RoleId" 
+                   class="px-4 py-2 text-sm font-medium text-white bg-[#a88641] rounded-md hover:bg-[#916f34] transition-colors">
+                    Done
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let availableCount = @Model.AvailableUsers.Count;
+        let assignedCount = @Model.AssignedUsers.Count;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSearch();
+            updateCounts();
+        });
+
+        function initializeSearch() {
+            const searchInput = document.getElementById('searchInput');
+            const clearButton = document.getElementById('clearSearch');
+
+            searchInput.addEventListener('input', filterUsers);
+            clearButton.addEventListener('click', clearSearch);
+        }
+
+        function filterUsers() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const userCards = document.querySelectorAll('.user-card');
+            let visibleAvailable = 0;
+            let visibleAssigned = 0;
+
+            userCards.forEach(card => {
+                const name = card.dataset.name;
+                const email = card.dataset.email;
+                const matches = name.includes(searchTerm) || email.includes(searchTerm);
+
+                if (matches) {
+                    card.style.display = '';
+                    if (card.classList.contains('available-user')) {
+                        visibleAvailable++;
+                    } else if (card.classList.contains('assigned-user')) {
+                        visibleAssigned++;
+                    }
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            // Update visible counts
+            document.getElementById('availableCount').textContent = `${visibleAvailable} users`;
+            document.getElementById('assignedCount').textContent = `${visibleAssigned} users`;
+        }
+
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            filterUsers();
+        }
+
+        function updateCounts() {
+            document.getElementById('availableCount').textContent = `${availableCount} users`;
+            document.getElementById('assignedCount').textContent = `${assignedCount} users`;
+            document.getElementById('mobileAvailableCount').textContent = availableCount;
+            document.getElementById('mobileAssignedCount').textContent = assignedCount;
+        }
+
+        function assignUser(userId, roleId, userName) {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            fetch('/RoleManagement/AssignUser', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    roleId: roleId
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showNotification('success', `${userName} assigned to role successfully`);
+                    // Move user card from available to assigned
+                    moveUserCard(userId, 'available', 'assigned');
+                    availableCount--;
+                    assignedCount++;
+                    updateCounts();
+                } else {
+                    showNotification('error', result.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('error', 'An error occurred while assigning user');
+            });
+        }
+
+        function removeUser(userId, roleId, userName) {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            fetch('/RoleManagement/RemoveUser', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    roleId: roleId
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showNotification('success', `${userName} removed from role successfully`);
+                    // Move user card from assigned to available
+                    moveUserCard(userId, 'assigned', 'available');
+                    assignedCount--;
+                    availableCount++;
+                    updateCounts();
+                } else {
+                    showNotification('error', result.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('error', 'An error occurred while removing user');
+            });
+        }
+
+        function moveUserCard(userId, from, to) {
+            const fromContainer = document.getElementById(from + 'Users');
+            const toContainer = document.getElementById(to + 'Users');
+            const userCard = Array.from(fromContainer.children).find(card => 
+                card.querySelector('button').getAttribute('onclick').includes(`'${userId}'`)
+            );
+
+            if (userCard) {
+                // Update card styling and button
+                if (to === 'assigned') {
+                    userCard.classList.remove('available-user');
+                    userCard.classList.add('assigned-user', 'border-green-200', 'bg-green-50');
+                    userCard.classList.remove('border-gray-200');
+                    
+                    const button = userCard.querySelector('button');
+                    button.outerHTML = `<button onclick="removeUser('${userId}', @Model.Role.RoleId, '${userCard.dataset.name}')" 
+                        class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors min-h-[44px] min-w-[80px]">
+                        <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                        </svg>
+                        <span class="hidden sm:inline">Remove</span>
+                        <span class="sm:hidden">Del</span>
+                    </button>`;
+                } else {
+                    userCard.classList.remove('assigned-user', 'border-green-200', 'bg-green-50');
+                    userCard.classList.add('available-user', 'border-gray-200');
+                    
+                    const button = userCard.querySelector('button');
+                    button.outerHTML = `<button onclick="assignUser('${userId}', @Model.Role.RoleId, '${userCard.dataset.name}')" 
+                        class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-[#a88641] border border-transparent rounded-md hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors min-h-[44px] min-w-[80px]">
+                        <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span class="hidden sm:inline">Assign</span>
+                        <span class="sm:hidden">Add</span>
+                    </button>`;
+                }
+
+                toContainer.appendChild(userCard);
+            }
+        }
+
+        function showNotification(type, message) {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `p-4 mb-4 rounded-md shadow-lg transform transition-all duration-300 ${type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`;
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        ${type === 'success' ? 
+                            '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>' :
+                            '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>'
+                        }
+                    </svg>
+                    <span class="text-sm font-medium">${message}</span>
+                </div>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Auto-remove after 4 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            }, 4000);
+        }
+    </script>
+}
+
+<!-- Add AntiForgeryToken for AJAX requests -->
+@Html.AntiForgeryToken() 

@@ -1,5 +1,5 @@
 ﻿@{
-    Layout = User.Identity.IsAuthenticated
+    Layout = User.Identity?.IsAuthenticated == true
         ? "~/Views/Shared/_AuthenticatedLayout.cshtml"
         : "~/Views/Shared/_GuestLayout.cshtml";
 }

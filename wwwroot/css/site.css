@@ -5,7 +5,7 @@ body {
 }
 
 .header-gradient {
-    background: linear-gradient(to right, #4f46e5, #6366f1);
+    background: linear-gradient(135deg, #a88641, #f2d194);
 }
 
 .dropdown-menu {
@@ -48,4 +48,110 @@ body {
 
 .logo-check {
     color: #a88641;
+}
+
+/* Button Styles */
+.btn-primary {
+    background-color: #a88641;
+    border-color: #916f34;
+}
+
+.btn-primary:hover {
+    background-color: #916f34;
+    border-color: #7d5f2d;
+}
+
+/* Form Focus States */
+.form-control:focus,
+.form-select:focus {
+    border-color: #a88641;
+    box-shadow: 0 0 0 0.2rem rgba(168, 134, 65, 0.25);
+}
+
+/* Active Navigation */
+.nav-link.active {
+    color: #a88641 !important;
+}
+
+/* Custom Checkbox */
+.custom-checkbox:checked {
+    background-color: #a88641;
+    border-color: #916f34;
+}
+
+/* Custom Radio */
+.custom-radio:checked {
+    background-color: #a88641;
+    border-color: #916f34;
+}
+
+/* Progress Bars */
+.progress-bar {
+    background-color: #a88641;
+}
+
+/* Badges */
+.badge-primary {
+    background-color: #a88641;
+    color: white;
+}
+
+/* Links */
+a {
+    color: #a88641;
+}
+
+a:hover {
+    color: #916f34;
+}
+
+/* Custom Border Colors */
+.border-primary {
+    border-color: #a88641 !important;
+}
+
+/* Custom Text Colors */
+.text-primary {
+    color: #a88641 !important;
+}
+
+/* Custom Background Colors */
+.bg-primary {
+    background-color: #a88641 !important;
+}
+
+/* Alerts */
+.alert-primary {
+    background-color: rgba(168, 134, 65, 0.1);
+    border-color: rgba(168, 134, 65, 0.2);
+    color: #916f34;
+}
+
+/* Tables */
+.table-primary {
+    background-color: rgba(168, 134, 65, 0.1);
+}
+
+/* Card Hover Effects */
+.card-hover:hover {
+    border-color: #a88641;
+    box-shadow: 0 0 0 1px #a88641;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #a88641;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #916f34;
 }

@@ -1,0 +1,128 @@
+@model LetsCheckIn.Models.CreateBranchViewModel
+@{
+    ViewBag.Title = "Create Branch";
+    Layout = "~/Views/Shared/_AuthenticatedLayout.cshtml";
+}
+
+<div id="notificationContainer" class="fixed top-4 right-4 z-50"></div>
+
+<div class="max-w-xl mx-auto mt-8">
+    <!-- Header with Branding -->
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center">
+            <h2 class="text-2xl font-bold text-gray-900">Create Branch</h2>
+            <span class="ml-2 bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded-full">HR</span>
+        </div>
+        <div class="flex items-center">
+            <img src="/images/logo-black-icon.png" alt="Logo" class="h-7 w-7" />
+            <h1 class="text-lg font-bold text-gray-900 ml-2">Lets<span class="text-[#a88641]">Check</span>In</h1>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <form asp-action="CreateBranch" method="post" id="createBranchForm" novalidate>
+            <div class="space-y-6">
+                <!-- Branch Information -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">Branch Information</h4>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div>
+                            <label asp-for="BranchName" class="block text-sm font-medium text-gray-700 mb-1">Branch Name</label>
+                            <input asp-for="BranchName" id="BranchName" 
+                                   class="form-input w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring-[#a88641] sm:text-sm" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Admin Information -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">Admin Information</h4>
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-4">
+                        <div>
+                            <label asp-for="AdminName" class="block text-sm font-medium text-gray-700 mb-1">Admin Name</label>
+                            <input asp-for="AdminName" id="AdminName" 
+                                   class="form-input w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring-[#a88641] sm:text-sm" />
+                        </div>
+                        <div>
+                            <label asp-for="AdminEmail" class="block text-sm font-medium text-gray-700 mb-1">Admin Email</label>
+                            <input asp-for="AdminEmail" id="AdminEmail" 
+                                   class="form-input w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring-[#a88641] sm:text-sm" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Features Configuration -->
+                <div>
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">Features Configuration</h4>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="text-sm text-gray-500 mb-3">Enable or disable features for this branch. At least Location must be enabled.</p>
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <input asp-for="EnableLocation" type="checkbox" id="EnableLocation" 
+                                       class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
+                                <label for="EnableLocation" class="ml-3 block text-sm text-gray-700">
+                                    <span class="font-medium">Location</span>
+                                    <span class="text-gray-500 block text-xs">Enable location-based attendance tracking</span>
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input asp-for="EnableNetwork" type="checkbox" id="EnableNetwork" 
+                                       class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
+                                <label for="EnableNetwork" class="ml-3 block text-sm text-gray-700">
+                                    <span class="font-medium">Network</span>
+                                    <span class="text-gray-500 block text-xs">Restrict attendance to specific network IPs</span>
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input asp-for="EnableBiometric" type="checkbox" id="EnableBiometric" 
+                                       class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
+                                <label for="EnableBiometric" class="ml-3 block text-sm text-gray-700">
+                                    <span class="font-medium">Face Recognition</span>
+                                    <span class="text-gray-500 block text-xs">Enable facial recognition for attendance</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="mt-6 flex items-center justify-end gap-3">
+                <a href="/Account/BranchList" 
+                   class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="px-4 py-2 text-sm font-medium text-white bg-[#a88641] border border-transparent rounded-md shadow-sm hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
+                    Create Branch
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="~/js/notification.js"></script>
+<script>
+    document.getElementById('createBranchForm').addEventListener('submit', function(e) {
+        var errors = [];
+        var branchName = document.getElementById('BranchName').value.trim();
+        var adminName = document.getElementById('AdminName').value.trim();
+        var adminEmail = document.getElementById('AdminEmail').value.trim();
+        var enableLocation = document.getElementById('EnableLocation').checked;
+        var emailPattern = /^\S+@@\S+\.\S+$/;
+
+        if (!branchName) errors.push('Branch Name is required.');
+        if (!adminName) errors.push('Admin Name is required.');
+        if (!adminEmail) errors.push('Admin Email is required.');
+        else if (!emailPattern.test(adminEmail)) errors.push('Admin Email is not valid.');
+        if (!enableLocation) errors.push('At least Location must be enabled.');
+
+        if (errors.length > 0) {
+            e.preventDefault();
+            errors.forEach(function(msg) {
+                showNotification(msg, 'error');
+            });
+        }
+    });
+</script>

@@ -1,0 +1,396 @@
+@using LetsCheckIn.Models.db
+@model Branch
+@{
+    ViewBag.Title = $"Manage {Model.BranchName} Branch";
+    Layout = "~/Views/Shared/_AuthenticatedLayout.cshtml";
+}
+
+<div id="notificationContainer" class="fixed top-4 right-4 z-50"></div>
+
+<!-- Leave Type Modal -->
+<div id="leaveTypeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-4 sm:p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white m-4">
+        <div class="flex flex-col">
+            <div class="flex justify-between items-center pb-3">
+                <p class="text-xl sm:text-2xl font-bold text-gray-900" id="modalTitle">Add Leave Type</p>
+                <button onclick="closeLeaveTypeModal()" class="text-gray-400 hover:text-gray-500">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="mt-4">
+                <form id="leaveTypeForm" class="space-y-4">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="leaveTypeId" />
+                    <input type="hidden" id="branchId" value="@Model.BranchId" />
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Leave Type Name</label>
+                        <input type="text" id="leaveName" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Description</label>
+                        <textarea id="leaveDescription" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" rows="2"></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700">Default Days</label>
+                        <input type="number" id="defaultDays" min="1" max="365" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2" required />
+                    </div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="isActive" class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
+                        <label class="ml-2 block text-sm text-gray-900">Active</label>
+                    </div>
+                    <div class="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-4">
+                        <button type="button" onclick="closeLeaveTypeModal()" class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                            Cancel
+                        </button>
+                        <button type="submit" class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-[#a88641] border border-transparent rounded-md hover:bg-[#916f34]">
+                            Save
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteLeaveTypeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-sm mx-4 w-full transform transition-all">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium text-gray-900">Confirm Delete</h3>
+            <button onclick="closeDeleteLeaveTypeModal()" class="text-gray-400 hover:text-gray-500">
+                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="mb-6">
+            <p class="text-sm text-gray-600">Are you sure you want to delete "<span id="leaveTypeNameToDelete" class="font-medium"></span>"? This action cannot be undone.</p>
+        </div>
+        <input type="hidden" id="leaveTypeIdToDelete" />
+        <div class="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
+            <button type="button" onclick="closeDeleteLeaveTypeModal()" 
+                    class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641]">
+                Cancel
+            </button>
+            <button type="button" onclick="confirmDeleteLeaveType()" 
+                    class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                Delete
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="p-4 sm:p-6 max-w-7xl mx-auto">
+    <!-- Header Section -->
+    <div class="mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">@Model.BranchName</h1>
+                <p class="text-sm sm:text-base text-gray-600">Manage branch settings, leave types, and other configurations</p>
+            </div>
+            <div class="flex items-center space-x-4">
+                <a href="/Account/BranchList" class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Back to Branches
+                </a>
+                <button onclick="showAddLeaveTypeModal()" class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#a88641] hover:bg-[#916f34]">
+                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Add Leave Type
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leave Types Section -->
+    <div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Leave Types</h3>
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <!-- Mobile View (Card Layout) -->
+                <div class="sm:hidden">
+                    <div id="leaveTypesCardView" class="divide-y divide-gray-200">
+                        <!-- Leave types will be populated here for mobile view -->
+                    </div>
+                </div>
+
+                <!-- Desktop View (Table Layout) -->
+                <table class="hidden sm:table min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Leave Type</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Default Days</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaveTypesTableBody" class="bg-white divide-y divide-gray-200">
+                        <!-- Leave types will be populated here for desktop view -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize form event listener
+    const leaveTypeForm = document.getElementById('leaveTypeForm');
+    if (leaveTypeForm) {
+        leaveTypeForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            const data = {
+                leaveTypeId: document.getElementById('leaveTypeId').value || null,
+                name: document.getElementById('leaveName').value,
+                description: document.getElementById('leaveDescription').value,
+                defaultDays: parseInt(document.getElementById('defaultDays').value),
+                isActive: document.getElementById('isActive').checked,
+                branchId: parseInt(document.getElementById('branchId').value)
+            };
+
+            console.log('Submitting leave type data:', data);
+            
+            fetch('/Account/SaveLeaveType', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Server response:', data);
+                if (data.success) {
+                    showNotification('success', data.message);
+                    closeLeaveTypeModal();
+                    loadLeaveTypes();
+                } else {
+                    showNotification('error', data.message || 'An error occurred while saving the leave type');
+                    if (data.errors) {
+                        console.log('Validation errors:', data.errors);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error saving leave type:', error);
+                showNotification('error', 'An error occurred while saving the leave type: ' + error.message);
+            });
+        });
+    }
+
+    // Load initial leave types
+    loadLeaveTypes();
+});
+
+function showAddLeaveTypeModal() {
+    document.getElementById('modalTitle').textContent = 'Add Leave Type';
+    document.getElementById('leaveTypeId').value = '';
+    document.getElementById('leaveName').value = '';
+    document.getElementById('leaveDescription').value = '';
+    document.getElementById('defaultDays').value = '';
+    document.getElementById('isActive').checked = true;
+    document.getElementById('leaveTypeModal').classList.remove('hidden');
+}
+
+function closeLeaveTypeModal() {
+    document.getElementById('leaveTypeModal').classList.add('hidden');
+    document.getElementById('leaveTypeForm').reset();
+}
+
+function loadLeaveTypes() {
+    const branchId = document.getElementById('branchId').value;
+    fetch(`/Account/GetLeaveTypes?branchId=${branchId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update desktop view
+                const tbody = document.getElementById('leaveTypesTableBody');
+                // Update mobile view
+                const cardView = document.getElementById('leaveTypesCardView');
+                
+                if (data.data.length === 0) {
+                    const emptyState = `
+                        <div class="p-6 text-center">
+                            <svg class="h-12 w-12 text-[#a88641] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            <p class="text-gray-500 mb-1">No leave types configured</p>
+                            <p class="text-sm text-gray-400">Click the Add Leave Type button to get started</p>
+                        </div>
+                    `;
+                    tbody.innerHTML = `<tr><td colspan="5">${emptyState}</td></tr>`;
+                    cardView.innerHTML = emptyState;
+                    return;
+                }
+                
+                // Clear existing content
+                tbody.innerHTML = '';
+                cardView.innerHTML = '';
+                
+                data.data.forEach(leaveType => {
+                    // Add desktop view row
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-50 transition-colors';
+                    tr.innerHTML = `
+                        <td class="px-6 py-4">
+                            <div class="text-sm font-medium text-gray-900">${leaveType.name}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-500">${leaveType.description || '-'}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="text-sm text-gray-900">${leaveType.defaultDays} days</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${leaveType.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                ${leaveType.isActive ? 'Active' : 'Inactive'}
+                            </span>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="flex items-center space-x-3">
+                                <button onclick='editLeaveType(${JSON.stringify(leaveType).replace(/"/g, '&quot;')})' class="text-[#a88641] hover:text-[#916f34]">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </button>
+                                <button onclick="deleteLeaveType(${leaveType.leaveTypeId}, '${leaveType.name}')" class="text-red-600 hover:text-red-800">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+
+                    // Add mobile view card
+                    const card = document.createElement('div');
+                    card.className = 'p-4 border-b border-gray-200';
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h3 class="text-sm font-medium text-gray-900">${leaveType.name}</h3>
+                                <p class="text-sm text-gray-500">${leaveType.description || 'No description'}</p>
+                            </div>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${leaveType.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                                ${leaveType.isActive ? 'Active' : 'Inactive'}
+                            </span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="text-sm text-gray-500">${leaveType.defaultDays} days</div>
+                            <div class="flex items-center space-x-3">
+                                <button onclick='editLeaveType(${JSON.stringify(leaveType).replace(/"/g, '&quot;')})' class="text-[#a88641] hover:text-[#916f34]">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </button>
+                                <button onclick="deleteLeaveType(${leaveType.leaveTypeId}, '${leaveType.name}')" class="text-red-600 hover:text-red-800">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    cardView.appendChild(card);
+                });
+            } else {
+                showNotification('error', data.message);
+            }
+        })
+        .catch(error => {
+            showNotification('error', 'An error occurred while loading leave types');
+        });
+}
+
+function editLeaveType(leaveType) {
+    document.getElementById('modalTitle').textContent = 'Edit Leave Type';
+    document.getElementById('leaveTypeId').value = leaveType.leaveTypeId;
+    document.getElementById('leaveName').value = leaveType.name;
+    document.getElementById('leaveDescription').value = leaveType.description || '';
+    document.getElementById('defaultDays').value = leaveType.defaultDays;
+    document.getElementById('isActive').checked = leaveType.isActive;
+    document.getElementById('leaveTypeModal').classList.remove('hidden');
+}
+
+function deleteLeaveType(leaveTypeId, leaveName) {
+    document.getElementById('leaveTypeIdToDelete').value = leaveTypeId;
+    document.getElementById('leaveTypeNameToDelete').textContent = leaveName;
+    const modal = document.getElementById('deleteLeaveTypeModal');
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+function closeDeleteLeaveTypeModal() {
+    const modal = document.getElementById('deleteLeaveTypeModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    document.getElementById('leaveTypeIdToDelete').value = '';
+    document.getElementById('leaveTypeNameToDelete').textContent = '';
+}
+
+function confirmDeleteLeaveType() {
+    const leaveTypeId = document.getElementById('leaveTypeIdToDelete').value;
+    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+    
+    fetch('/Account/DeleteLeaveType', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': token
+        },
+        body: JSON.stringify(leaveTypeId)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification('success', data.message);
+            loadLeaveTypes();
+        } else {
+            showNotification('error', data.message);
+        }
+        closeDeleteLeaveTypeModal();
+    })
+    .catch(error => {
+        showNotification('error', 'An error occurred while deleting the leave type');
+        closeDeleteLeaveTypeModal();
+    });
+}
+
+function showNotification(type, message) {
+    const container = document.getElementById('notificationContainer');
+    const notification = document.createElement('div');
+    notification.className = `p-4 mb-4 rounded-md ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+    notification.innerHTML = message;
+    
+    container.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+
+// Make functions globally available
+window.showAddLeaveTypeModal = showAddLeaveTypeModal;
+window.closeLeaveTypeModal = closeLeaveTypeModal;
+window.editLeaveType = editLeaveType;
+window.deleteLeaveType = deleteLeaveType;
+window.closeDeleteLeaveTypeModal = closeDeleteLeaveTypeModal;
+</script>
+} 

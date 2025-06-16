@@ -1,9 +1,9 @@
 using System.Diagnostics;
-using AttendEase.Models;
+using LetsCheckIn.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AttendEase.Controllers
+namespace LetsCheckIn.Controllers
 {
     public class HomeController : Controller
     {
@@ -16,6 +16,10 @@ namespace AttendEase.Controllers
 
         public IActionResult Index()
         {
+            if (User.Identity.IsAuthenticated)
+            {
+                return RedirectToAction("Dashboard", "LeaveManagement");
+            }
             return View();
         }
 

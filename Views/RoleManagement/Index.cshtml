@@ -1,0 +1,682 @@
+@model List<LetsCheckIn.Controllers.RoleViewModel>
+@{
+    ViewBag.Title = "Role Management";
+    ViewData["Title"] = "Role Management";
+    Layout = "~/Views/Shared/_AuthenticatedLayout.cshtml";
+    var branches = ViewBag.Branches as List<LetsCheckIn.Models.db.Branch>;
+}
+
+<div class="min-h-screen bg-gray-50">
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="fixed top-4 right-4 z-50 w-full max-w-xs"></div>
+
+    <!-- Main Content Area -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <!-- Header Section -->
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
+            <div>
+                <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Role Management</h1>
+                <p class="mt-1 text-sm text-gray-500">Manage system roles and their branch assignments</p>
+            </div>
+            <button onclick="showCreateRoleModal()" 
+                    class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[#a88641] hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors min-h-[44px]">
+                <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                <span class="hidden sm:inline">Create New Role</span>
+                <span class="sm:hidden">Create</span>
+            </button>
+        </div>
+
+        <!-- Search and Filter Section -->
+        <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 mb-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label for="searchInput" class="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                    <input type="text" id="searchInput" 
+                           class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm"
+                           placeholder="Search by role name or description">
+                </div>
+                <div>
+                    <label for="branchFilter" class="block text-sm font-medium text-gray-700 mb-2">Branch</label>
+                    <select id="branchFilter" 
+                            class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm">
+                        <option value="">All Branches</option>
+                        @if (branches != null)
+                        {
+                            foreach (var branch in branches)
+                            {
+                                <option value="@branch.BranchName">@branch.BranchName</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label for="typeFilter" class="block text-sm font-medium text-gray-700 mb-2">Type</label>
+                    <select id="typeFilter" 
+                            class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm">
+                        <option value="">All Types</option>
+                        <option value="system">System Roles</option>
+                        <option value="custom">Custom Roles</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Roles Table/Cards -->
+        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+            <!-- Desktop Table View -->
+            <div class="hidden md:block">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch Assignments</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Users</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200" id="rolesTableBody">
+                        @foreach (var role in Model)
+                        {
+                            <tr class="role-row hover:bg-gray-50" data-name="@role.RoleName.ToLower()" data-description="@(role.Description?.ToLower() ?? "")" 
+                                data-branches="@string.Join(",", role.BranchAssignments.Select(b => b.BranchName.ToLower()))" data-type="@(role.IsSystemRole ? "system" : "custom")" 
+                                data-users="@role.UserCount" data-status="@(role.IsActive ? "active" : "inactive")">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="text-sm font-medium text-gray-900">@role.RoleName</div>
+                                    @if (!string.IsNullOrEmpty(role.Description))
+                                    {
+                                        <div class="text-sm text-gray-500">@role.Description</div>
+                                    }
+                                </td>
+                                <td class="px-6 py-4">
+                                    @if (role.BranchAssignments.Any())
+                                    {
+                                        <div class="flex flex-wrap gap-1">
+                                            @foreach (var assignment in role.BranchAssignments)
+                                            {
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    @assignment.BranchName
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-sm text-gray-400">No branch assignments</span>
+                                    }
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full @(role.IsSystemRole ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800")">
+                                        @(role.IsSystemRole ? "System" : "Custom")
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="text-sm text-gray-900">@role.UserCount</span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                    <div class="flex items-center space-x-3">
+                                        <a href="@Url.Action("Details", new { id = role.RoleId })" 
+                                           class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-md hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors">
+                                            <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                            View
+                                        </a>
+                                        <button onclick="showAssignBranchModal(@role.RoleId, '@role.RoleName')" 
+                                                class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors">
+                                            <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                            </svg>
+                                            Assign Branch
+                                        </button>
+                                        @if (!role.IsSystemRole)
+                                        {
+                                            <button onclick="confirmDelete(@role.RoleId, '@role.RoleName')" 
+                                                    class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                                                <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                                Delete
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Mobile Card View -->
+            <div class="md:hidden p-4 space-y-4" id="rolesCardContainer">
+                @foreach (var role in Model)
+                {
+                    <div class="role-card bg-white border border-gray-200 rounded-lg p-4 shadow-sm" 
+                         data-name="@role.RoleName.ToLower()" data-description="@(role.Description?.ToLower() ?? "")" 
+                         data-branches="@string.Join(",", role.BranchAssignments.Select(b => b.BranchName.ToLower()))" data-type="@(role.IsSystemRole ? "system" : "custom")" 
+                         data-users="@role.UserCount" data-status="@(role.IsActive ? "active" : "inactive")">
+                        <div class="flex justify-between items-start mb-3">
+                            <div class="flex-1">
+                                <h3 class="text-lg font-medium text-gray-900">@role.RoleName</h3>
+                                @if (!string.IsNullOrEmpty(role.Description))
+                                {
+                                    <p class="text-sm text-gray-500 mt-1">@role.Description</p>
+                                }
+                            </div>
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full @(role.IsSystemRole ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800")">
+                                @(role.IsSystemRole ? "System" : "Custom")
+                            </span>
+                        </div>
+
+                        <div class="space-y-2 mb-4">
+                            <div>
+                                <span class="text-sm font-medium text-gray-500">Branch Assignments:</span>
+                                @if (role.BranchAssignments.Any())
+                                {
+                                    <div class="flex flex-wrap gap-1 mt-1">
+                                        @foreach (var assignment in role.BranchAssignments)
+                                        {
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                @assignment.BranchName
+                                            </span>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-sm text-gray-400 ml-1">None</span>
+                                }
+                            </div>
+                            <div>
+                                <span class="text-sm font-medium text-gray-500">Users: </span>
+                                <span class="text-sm text-gray-900">@role.UserCount</span>
+                            </div>
+                        </div>
+
+                        <div class="flex space-x-3 pt-3 border-t border-gray-200">
+                            <a href="@Url.Action("Details", new { id = role.RoleId })" 
+                               class="flex-1 inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-md hover:bg-indigo-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors min-h-[44px]">
+                                <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                View Details
+                            </a>
+                            <button onclick="showAssignBranchModal(@role.RoleId, '@role.RoleName')" 
+                                    class="flex-1 inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors min-h-[44px]">
+                                <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                                Assign Branch
+                            </button>
+                            @if (!role.IsSystemRole)
+                            {
+                                <button onclick="confirmDelete(@role.RoleId, '@role.RoleName')" 
+                                        class="flex-1 inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors min-h-[44px]">
+                                    <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    Delete
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <!-- Empty State -->
+            @if (!Model.Any())
+            {
+                <div class="text-center py-12">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">No roles found</h3>
+                    <p class="mt-1 text-sm text-gray-500">Get started by creating a new role.</p>
+                    <div class="mt-6">
+                        <button onclick="showCreateRoleModal()" 
+                                class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-[#a88641] hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641]">
+                            <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Create Role
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Create Role Modal -->
+<div id="createRoleModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-lg shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Create New Role</h3>
+                <button onclick="closeCreateRoleModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <form id="createRoleForm" method="post" action="@Url.Action("Create")">
+            @Html.AntiForgeryToken()
+            <div class="space-y-4">
+                <div>
+                    <label for="roleName" class="block text-sm font-medium text-gray-700 mb-2">Role Name</label>
+                    <input type="text" id="roleName" name="RoleName" required
+                           class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm"
+                           placeholder="Enter role name">
+                </div>
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <textarea id="description" name="Description" rows="3"
+                              class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm"
+                              placeholder="Enter role description (optional)"></textarea>
+                </div>
+            </div>
+            <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4">
+                <button type="button" onclick="closeCreateRoleModal()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] min-h-[44px]">
+                    Cancel
+                </button>
+                <button type="submit"
+                        class="px-4 py-2 text-sm font-medium text-white bg-[#a88641] border border-transparent rounded-md hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] min-h-[44px]">
+                    Create Role
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Assign to Branch Modal -->
+<div id="assignBranchModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-lg shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Manage Branch Assignments</h3>
+                <button onclick="closeAssignBranchModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div id="assignBranchContent">
+            <p class="mb-4">Manage branch assignments for role <strong id="assignRoleName"></strong>:</p>
+            
+            <!-- Assigned Branches Section -->
+            <div class="mb-6">
+                <h4 class="text-sm font-medium text-gray-700 mb-2">Assigned Branches</h4>
+                <div id="assignedBranchesContainer" class="space-y-2 max-h-60 overflow-y-auto">
+                    <!-- Assigned branches will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Unassigned Branches Section -->
+            <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-2">Available Branches</h4>
+                <div id="branchSelectionContainer" class="space-y-2 max-h-60 overflow-y-auto">
+                    <!-- Unassigned branches will be loaded here -->
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4">
+                <button type="button" onclick="closeAssignBranchModal()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteConfirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-md shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <svg class="h-6 w-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Delete Role</h3>
+            <p class="text-sm text-gray-500 mb-4">
+                Are you sure you want to delete the role "<span id="deleteRoleName"></span>"? This action cannot be undone.
+            </p>
+            <div class="flex justify-center space-x-3">
+                <button type="button" onclick="closeDeleteConfirmModal()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 min-h-[44px]">
+                    Cancel
+                </button>
+                <button type="button" onclick="deleteRole()" id="confirmDeleteBtn"
+                        class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 min-h-[44px]">
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentRoleId = null;
+    let currentRoleName = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeFilters();
+    });
+
+    function initializeFilters() {
+        const searchInput = document.getElementById('searchInput');
+        const branchFilter = document.getElementById('branchFilter');
+        const typeFilter = document.getElementById('typeFilter');
+
+        searchInput.addEventListener('input', filterRoles);
+        branchFilter.addEventListener('change', filterRoles);
+        typeFilter.addEventListener('change', filterRoles);
+    }
+
+    function filterRoles() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const branchFilter = document.getElementById('branchFilter').value.toLowerCase();
+        const typeFilter = document.getElementById('typeFilter').value.toLowerCase();
+        
+        // Filter table rows (desktop)
+        const rows = document.querySelectorAll('.role-row');
+        // Filter card items (mobile)
+        const cards = document.querySelectorAll('.role-card');
+        
+        let visibleCount = 0;
+
+        [...rows, ...cards].forEach(item => {
+            const name = item.dataset.name;
+            const description = item.dataset.description;
+            const branches = item.dataset.branches;
+            const type = item.dataset.type;
+
+            const matchesSearch = name.includes(searchTerm) || description.includes(searchTerm);
+            const matchesBranch = !branchFilter || branches.includes(branchFilter);
+            const matchesType = !typeFilter || type === typeFilter;
+            const shouldShow = matchesSearch && matchesBranch && matchesType;
+
+            item.style.display = shouldShow ? '' : 'none';
+            if (shouldShow) visibleCount++;
+        });
+
+        // Show/hide empty state
+        const emptyState = document.querySelector('.text-center.py-12');
+        if (emptyState) {
+            emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+        }
+    }
+
+    // Modal functions
+    function showCreateRoleModal() {
+        document.getElementById('createRoleModal').classList.remove('hidden');
+    }
+
+    function closeCreateRoleModal() {
+        document.getElementById('createRoleModal').classList.add('hidden');
+        document.getElementById('createRoleForm').reset();
+    }
+
+    async function showAssignBranchModal(roleId, roleName) {
+        try {
+            console.log(`Opening assign branch modal for role ${roleId} (${roleName})`);
+            
+            currentRoleId = roleId;
+            currentRoleName = roleName;
+            
+            document.getElementById('assignRoleName').textContent = roleName;
+            document.getElementById('assignBranchModal').classList.remove('hidden');
+            
+            // Load both assigned and unassigned branches
+            console.log(`Fetching branch assignments for role ${roleId}`);
+            const [assignedResponse, unassignedResponse] = await Promise.all([
+                fetch(`/RoleManagement/GetAssignedBranches?roleId=${roleId}`),
+                fetch(`/RoleManagement/GetUnassignedBranches?roleId=${roleId}`)
+            ]);
+            
+            if (!assignedResponse.ok || !unassignedResponse.ok) {
+                throw new Error('Failed to fetch branch data');
+            }
+            
+            const assignedData = await assignedResponse.json();
+            const unassignedData = await unassignedResponse.json();
+            
+            if (assignedData.success && unassignedData.success) {
+                loadAssignedBranches(assignedData.branches);
+                loadBranchSelection(unassignedData.branches);
+            } else {
+                console.error('Failed to load branches:', assignedData.message || unassignedData.message);
+                showNotification(assignedData.message || unassignedData.message || 'Failed to load branches', 'error');
+            }
+        } catch (error) {
+            console.error('Error in showAssignBranchModal:', error);
+            showNotification('Error loading branches: ' + error.message, 'error');
+        }
+    }
+
+    function loadAssignedBranches(branches) {
+        console.log('Loading assigned branches:', branches);
+        const container = document.getElementById('assignedBranchesContainer');
+        
+        // Handle the case where branches is a complex object with $values
+        const branchArray = branches.$values || branches;
+        
+        if (!branchArray || branchArray.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 text-sm">No branches assigned to this role.</p>';
+            return;
+        }
+        
+        container.innerHTML = branchArray.map(branch => `
+            <div class="flex items-center justify-between p-3 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors">
+                <div class="flex items-center space-x-3">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    <span class="text-sm font-medium text-gray-900">${branch.name}</span>
+                </div>
+                <button onclick="removeRoleFromBranch(${currentRoleId}, ${branch.id}, '${branch.name}')"
+                        class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                    <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Remove
+                </button>
+            </div>
+        `).join('');
+    }
+
+    function loadBranchSelection(branches) {
+        console.log('Loading branch selection with branches:', branches);
+        const container = document.getElementById('branchSelectionContainer');
+        
+        // Handle the case where branches is a complex object with $values
+        const branchArray = branches.$values || branches;
+        
+        if (!branchArray || branchArray.length === 0) {
+            container.innerHTML = '<p class="text-gray-500 text-sm">All available branches are already assigned to this role.</p>';
+            return;
+        }
+        
+        container.innerHTML = branchArray.map(branch => `
+            <div class="flex items-center justify-between p-3 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors">
+                <div class="flex items-center space-x-3">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    <span class="text-sm font-medium text-gray-900">${branch.name}</span>
+                </div>
+                <button onclick="assignRoleToBranch(${currentRoleId}, ${branch.id}, '${branch.name}')"
+                        class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-[#a88641] rounded-md hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
+                    <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Assign
+                </button>
+            </div>
+        `).join('');
+    }
+
+    function closeAssignBranchModal() {
+        document.getElementById('assignBranchModal').classList.add('hidden');
+        currentRoleId = null;
+        currentRoleName = null;
+    }
+
+    async function assignRoleToBranch(roleId, branchId, branchName) {
+        try {
+            const response = await fetch('/RoleManagement/AssignToBranch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: JSON.stringify({ roleId: roleId, branchId: branchId })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                showNotification(`Role assigned to ${branchName} successfully`, 'success');
+                closeAssignBranchModal();
+                window.location.reload(); // Refresh to show updated assignments
+            } else {
+                showNotification(data.message || 'Failed to assign role to branch', 'error');
+            }
+        } catch (error) {
+            showNotification('An error occurred while assigning the role', 'error');
+        }
+    }
+
+    async function removeRoleFromBranch(roleId, branchId, branchName) {
+        try {
+            const response = await fetch('/RoleManagement/RemoveFromBranch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: JSON.stringify({ roleId: roleId, branchId: branchId })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                showNotification(`Role removed from ${branchName} successfully`, 'success');
+                // Refresh the branch lists
+                showAssignBranchModal(roleId, currentRoleName);
+            } else {
+                showNotification(data.message || 'Failed to remove role from branch', 'error');
+            }
+        } catch (error) {
+            showNotification('An error occurred while removing the role', 'error');
+        }
+    }
+
+    function confirmDelete(roleId, roleName) {
+        currentRoleId = roleId;
+        document.getElementById('deleteRoleName').textContent = roleName;
+        document.getElementById('deleteConfirmModal').classList.remove('hidden');
+    }
+
+    function closeDeleteConfirmModal() {
+        document.getElementById('deleteConfirmModal').classList.add('hidden');
+        currentRoleId = null;
+    }
+
+    async function deleteRole() {
+        if (!currentRoleId) return;
+
+        try {
+            const response = await fetch('/RoleManagement/Delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: JSON.stringify(currentRoleId)
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                showNotification('Role deleted successfully', 'success');
+                closeDeleteConfirmModal();
+                window.location.reload();
+            } else {
+                showNotification(data.message || 'Failed to delete role', 'error');
+            }
+        } catch (error) {
+            showNotification('An error occurred while deleting the role', 'error');
+        }
+    }
+
+    // Notification system
+    function showNotification(message, type = 'info') {
+        const container = document.getElementById('notificationContainer');
+        const notification = document.createElement('div');
+        
+        const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+        const icon = type === 'success' ? 
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />' :
+            type === 'error' ? 
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />' :
+            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />';
+        
+        notification.className = `${bgColor} text-white px-4 py-3 rounded-lg shadow-lg mb-4 transform transition-all duration-300 translate-x-full`;
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <svg class="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    ${icon}
+                </svg>
+                <span class="text-sm font-medium">${message}</span>
+            </div>
+        `;
+        
+        container.appendChild(notification);
+        
+        // Trigger animation
+        setTimeout(() => {
+            notification.classList.remove('translate-x-full');
+        }, 100);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            notification.classList.add('translate-x-full');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, 5000);
+    }
+
+    // Handle form submission
+    document.getElementById('createRoleForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        try {
+            const response = await fetch(this.action, {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.ok) {
+                window.location.href = response.url || window.location.href;
+            } else {
+                showNotification('Failed to create role', 'error');
+            }
+        } catch (error) {
+            showNotification('An error occurred while creating the role', 'error');
+        }
+    });
+</script>

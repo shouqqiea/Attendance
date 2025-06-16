@@ -1,0 +1,139 @@
+@model CreateUserViewModel
+@{
+    ViewBag.Title = "Create User";
+    Layout = "~/Views/Shared/_AuthenticatedLayout.cshtml";
+    var branches = ViewBag.Branches as List<LetsCheckIn.Models.db.Branch>;
+    var roles = ViewBag.Roles as List<string>;
+}
+<div class="max-w-xl mx-auto mt-8 bg-white p-6 rounded-lg shadow-md">
+    <h2 class="text-2xl font-bold mb-4">Create User</h2>
+    @if (TempData["Success"] != null)
+    {
+        <div class="bg-green-100 text-green-800 px-4 py-2 rounded mb-4">@TempData["Success"]</div>
+    }
+    @if (ViewData.ModelState.ErrorCount > 0)
+    {
+        <div class="bg-red-100 text-red-800 px-4 py-2 rounded mb-4">
+            <ul class="list-disc list-inside">
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                {
+                    <li>@error.ErrorMessage</li>
+                }
+            </ul>
+        </div>
+    }
+    <form asp-action="CreateUser" method="post" class="space-y-4">
+        <div>
+            <label class="block text-sm font-medium text-gray-700">First Name</label>
+            <input asp-for="FirstName" class="form-input w-full border border-gray-300 rounded-md p-2" required />
+            <span asp-validation-for="FirstName" class="text-red-500 text-xs"></span>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Last Name</label>
+            <input asp-for="LastName" class="form-input w-full border border-gray-300 rounded-md p-2" required />
+            <span asp-validation-for="LastName" class="text-red-500 text-xs"></span>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Email</label>
+            <input asp-for="Email" class="form-input w-full border border-gray-300 rounded-md p-2" required />
+            <span asp-validation-for="Email" class="text-red-500 text-xs"></span>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Branch</label>
+            <select asp-for="BranchId" id="branchSelect" class="form-select w-full border border-gray-300 rounded-md p-2" required onchange="onBranchChange()">
+                <option value="">Select Branch</option>
+                @if (branches != null)
+                {
+                    foreach (var branch in branches)
+                    {
+                        <option value="@branch.BranchId">@branch.BranchName</option>
+                    }
+                }
+            </select>
+            <span asp-validation-for="BranchId" class="text-red-500 text-xs"></span>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Role</label>
+            <select asp-for="Role" id="roleSelect" class="form-select w-full border border-gray-300 rounded-md p-2" required>
+                <option value="">Select a branch first</option>
+            </select>
+            <span asp-validation-for="Role" class="text-red-500 text-xs"></span>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Status</label>
+            <select asp-for="Status" class="form-select w-full border border-gray-300 rounded-md p-2">
+                <option value="true">Active</option>
+                <option value="false">Inactive</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Password</label>
+            <input asp-for="Password" type="password" class="form-input w-full border border-gray-300 rounded-md p-2" required />
+            <span asp-validation-for="Password" class="text-red-500 text-xs"></span>
+        </div>
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md transition-colors">Create User</button>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        async function onBranchChange() {
+            const branchSelect = document.getElementById('branchSelect');
+            const roleSelect = document.getElementById('roleSelect');
+            const selectedBranchId = branchSelect.value;
+
+            // Clear role options
+            roleSelect.innerHTML = '<option value="">Select a role</option>';
+
+            if (selectedBranchId) {
+                try {
+                    const response = await fetch(`/UserManagement/GetRolesForBranch?branchId=${selectedBranchId}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        data.roles.forEach(role => {
+                            const option = document.createElement('option');
+                            option.value = role.value;
+                            option.textContent = role.text;
+                            roleSelect.appendChild(option);
+                        });
+                    } else {
+                        showNotification(data.message || 'Failed to load roles', 'error');
+                    }
+                } catch (error) {
+                    showNotification('Error loading roles for branch', 'error');
+                }
+            } else {
+                roleSelect.innerHTML = '<option value="">Select a branch first</option>';
+            }
+        }
+
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            const bgColor = type === 'success' ? 'bg-green-100 text-green-800' : type === 'error' ? 'bg-red-100 text-red-800' : 'bg-blue-100 text-blue-800';
+            
+            notification.className = `${bgColor} px-4 py-2 rounded mb-4 transition-all duration-300`;
+            notification.textContent = message;
+            
+            // Insert at top of form
+            const form = document.querySelector('form');
+            form.insertBefore(notification, form.firstChild);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // If there's a validation error and branch is selected, load roles
+            const branchSelect = document.getElementById('branchSelect');
+            if (branchSelect.value) {
+                onBranchChange();
+            }
+        });
+    </script>
+}

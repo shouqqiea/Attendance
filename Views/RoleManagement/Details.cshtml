@@ -1,0 +1,530 @@
+@model LetsCheckIn.Controllers.RoleDetailsViewModel
+@{
+    ViewBag.Title = "Role Details";
+    ViewData["Title"] = "Role Details - " + Model.Role.RoleName;
+    Layout = "~/Views/Shared/_AuthenticatedLayout.cshtml";
+}
+
+<div class="min-h-screen bg-gray-50">
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="fixed top-4 right-4 z-50 w-full max-w-xs"></div>
+
+    <!-- Main Content Area -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <!-- Header Section -->
+        <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 sm:mb-8 space-y-4 sm:space-y-0">
+            <div class="flex-1">
+                <div class="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0">
+                    <div class="flex items-center">
+                        <a href="/RoleManagement" class="text-[#a88641] hover:text-[#916f34] mr-3 p-1 rounded-md hover:bg-gray-100">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                            </svg>
+                        </a>
+                        <h1 class="text-xl sm:text-2xl font-bold text-gray-900">@Model.Role.RoleName</h1>
+                    </div>
+                    <span class="ml-0 sm:ml-3 px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full @(Model.Role.IsSystemRole ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800") w-fit">
+                        @(Model.Role.IsSystemRole ? "System Role" : "Custom Role")
+                    </span>
+                </div>
+                <div class="mt-2 space-y-1">
+                    <p class="text-sm text-gray-500">@(Model.Role.Description ?? "No description provided")</p>
+
+                </div>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3 sm:ml-4">
+                <button onclick="showAssignBranchModal(@Model.Role.RoleId, '@Model.Role.RoleName')" 
+                        class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors min-h-[44px]">
+                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    Assign to Branch
+                </button>
+                <a href="/RoleManagement/AssignUsers/@Model.Role.RoleId" 
+                   class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[#a88641] hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors min-h-[44px]">
+                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Assign Users
+                </a>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+            <!-- Permissions Section -->
+            <div class="bg-white rounded-lg shadow-sm order-1">
+                <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-medium text-gray-900">Permissions</h2>
+                    <p class="text-sm text-gray-500">Manage role permissions</p>
+                </div>
+                <div class="p-4 sm:p-6">
+                    <!-- Assigned Permissions -->
+                    <div class="mb-6">
+                        <h3 class="text-base font-medium text-gray-900 mb-3">Assigned Permissions</h3>
+                        @if (Model.Permissions.Any())
+                        {
+                            <div class="space-y-3">
+                                @foreach (var category in Model.Permissions.GroupBy(p => p.Category))
+                                {
+                                    <div class="border rounded-lg p-3">
+                                        <h4 class="text-sm font-medium text-gray-700 mb-2">@category.Key</h4>
+                                        <div class="flex flex-wrap gap-2">
+                                            @foreach (var permission in category)
+                                            {
+                                                <span class="inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-medium bg-green-100 text-green-800 min-h-[32px]">
+                                                    <span class="break-words">@permission.PermissionName</span>
+                                                    @if (!Model.Role.IsSystemRole)
+                                                    {
+                                                        <button onclick="removePermission(@Model.Role.RoleId, @permission.PermissionId)" 
+                                                                class="ml-2 text-green-600 hover:text-green-800 p-1 rounded-full hover:bg-green-200 transition-colors min-w-[24px] min-h-[24px] flex items-center justify-center"
+                                                                aria-label="Remove permission">
+                                                            <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                                            </svg>
+                                                        </button>
+                                                    }
+                                                </span>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="text-center py-8 text-gray-500">
+                                <svg class="mx-auto h-8 w-8 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <p class="text-sm italic">No permissions assigned</p>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Available Permissions -->
+                    @if (!Model.Role.IsSystemRole)
+                    {
+                        <div>
+                            <h3 class="text-base font-medium text-gray-900 mb-3">Available Permissions</h3>
+                            @{
+                                var assignedPermissionIds = Model.Permissions.Select(p => p.PermissionId).ToList();
+                                var availablePermissions = Model.AllPermissions.Where(p => !assignedPermissionIds.Contains(p.PermissionId)).ToList();
+                            }
+                            @if (availablePermissions.Any())
+                            {
+                                <div class="space-y-3">
+                                    @foreach (var category in availablePermissions.GroupBy(p => p.Category))
+                                    {
+                                        <div class="border rounded-lg p-3">
+                                            <h4 class="text-sm font-medium text-gray-700 mb-2">@category.Key</h4>
+                                            <div class="flex flex-wrap gap-2">
+                                                @foreach (var permission in category)
+                                                {
+                                                    <button onclick="assignPermission(@Model.Role.RoleId, @permission.PermissionId)" 
+                                                            class="inline-flex items-center px-2.5 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors min-h-[32px] active:bg-gray-300"
+                                                            title="Click to assign @permission.PermissionName">
+                                                        <span class="break-words">@permission.PermissionName</span>
+                                                        <svg class="ml-1 h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                                                        </svg>
+                                                    </button>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-8 text-gray-500">
+                                    <svg class="mx-auto h-8 w-8 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                                    </svg>
+                                    <p class="text-sm italic">All permissions have been assigned</p>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Users Section -->
+            <div class="bg-white rounded-lg shadow-sm order-2">
+                <div class="px-4 sm:px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-medium text-gray-900">Assigned Users</h2>
+                    <p class="text-sm text-gray-500">Users with this role</p>
+                </div>
+                <div class="p-4 sm:p-6">
+                    @if (Model.Users.Any())
+                    {
+                        <div class="space-y-3">
+                            @foreach (var user in Model.Users)
+                            {
+                                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                                    <div class="flex-1 min-w-0">
+                                        <h4 class="text-sm font-medium text-gray-900 truncate">@user.FullName</h4>
+                                        <p class="text-sm text-gray-500 truncate">@user.Email</p>
+                                        <p class="text-xs text-gray-400 mt-1">Assigned: @user.AssignedDate.ToString("MMM dd, yyyy")</p>
+                                    </div>
+                                    @if (!Model.Role.IsSystemRole)
+                                    {
+                                        <div class="mt-3 sm:mt-0 sm:ml-4 flex justify-end">
+                                            <button onclick="removeUserFromRole('@user.UserId', @Model.Role.RoleId)" 
+                                                    class="inline-flex items-center justify-center p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-md transition-colors min-w-[44px] min-h-[44px]"
+                                                    aria-label="Remove @user.FullName from role"
+                                                    title="Remove user from role">
+                                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-8 text-gray-500">
+                            <svg class="mx-auto h-8 w-8 text-gray-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                            </svg>
+                            <p class="text-sm italic">No users assigned to this role</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Assign to Branch Modal -->
+<div id="assignBranchModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-lg shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Manage Branch Assignments</h3>
+                <button onclick="closeAssignBranchModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div id="assignBranchContent">
+            <p class="mb-4">Manage branch assignments for role <strong id="assignRoleName"></strong>:</p>
+            
+            <!-- Assigned Branches Section -->
+            <div class="mb-6">
+                <h4 class="text-sm font-medium text-gray-700 mb-2">Assigned Branches</h4>
+                <div id="assignedBranchesContainer" class="space-y-2 max-h-60 overflow-y-auto">
+                    <!-- Assigned branches will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Unassigned Branches Section -->
+            <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-2">Available Branches</h4>
+                <div id="branchSelectionContainer" class="space-y-2 max-h-60 overflow-y-auto">
+                    <!-- Unassigned branches will be loaded here -->
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-4">
+                <button type="button" onclick="closeAssignBranchModal()"
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentRoleId = null;
+        let currentRoleName = null;
+
+        function assignPermission(roleId, permissionId) {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            fetch('/RoleManagement/AssignPermission', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({
+                    roleId: roleId,
+                    permissionId: permissionId
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showNotification('success', result.message);
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showNotification('error', result.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('error', 'An error occurred while assigning permission');
+            });
+        }
+
+        function removePermission(roleId, permissionId) {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            fetch('/RoleManagement/RemovePermission', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({
+                    roleId: roleId,
+                    permissionId: permissionId
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showNotification('success', result.message);
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showNotification('error', result.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('error', 'An error occurred while removing permission');
+            });
+        }
+
+        function removeUserFromRole(userId, roleId) {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            fetch('/RoleManagement/RemoveUser', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({
+                    userId: userId,
+                    roleId: roleId
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showNotification('success', result.message);
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showNotification('error', result.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('error', 'An error occurred while removing user from role');
+            });
+        }
+
+        async function showAssignBranchModal(roleId, roleName) {
+            try {
+                console.log(`Opening assign branch modal for role ${roleId} (${roleName})`);
+                
+                currentRoleId = roleId;
+                currentRoleName = roleName;
+                
+                document.getElementById('assignRoleName').textContent = roleName;
+                document.getElementById('assignBranchModal').classList.remove('hidden');
+                
+                // Load both assigned and unassigned branches
+                console.log(`Fetching branch assignments for role ${roleId}`);
+                const [assignedResponse, unassignedResponse] = await Promise.all([
+                    fetch(`/RoleManagement/GetAssignedBranches?roleId=${roleId}`),
+                    fetch(`/RoleManagement/GetUnassignedBranches?roleId=${roleId}`)
+                ]);
+                
+                if (!assignedResponse.ok || !unassignedResponse.ok) {
+                    throw new Error('Failed to fetch branch data');
+                }
+                
+                const assignedData = await assignedResponse.json();
+                const unassignedData = await unassignedResponse.json();
+                
+                if (assignedData.success && unassignedData.success) {
+                    loadAssignedBranches(assignedData.branches);
+                    loadBranchSelection(unassignedData.branches);
+                } else {
+                    console.error('Failed to load branches:', assignedData.message || unassignedData.message);
+                    showNotification(assignedData.message || unassignedData.message || 'Failed to load branches', 'error');
+                }
+            } catch (error) {
+                console.error('Error in showAssignBranchModal:', error);
+                showNotification('Error loading branches: ' + error.message, 'error');
+            }
+        }
+
+        function loadAssignedBranches(branches) {
+            console.log('Loading assigned branches:', branches);
+            const container = document.getElementById('assignedBranchesContainer');
+            
+            // Handle the case where branches is a complex object with $values
+            const branchArray = branches.$values || branches;
+            
+            if (!branchArray || branchArray.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">No branches assigned to this role.</p>';
+                return;
+            }
+            
+            container.innerHTML = branchArray.map(branch => `
+                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center space-x-3">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <span class="text-sm font-medium text-gray-900">${branch.name}</span>
+                    </div>
+                    <button onclick="removeRoleFromBranch(${currentRoleId}, ${branch.id}, '${branch.name}')"
+                            class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                        <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Remove
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function loadBranchSelection(branches) {
+            console.log('Loading branch selection with branches:', branches);
+            const container = document.getElementById('branchSelectionContainer');
+            
+            // Handle the case where branches is a complex object with $values
+            const branchArray = branches.$values || branches;
+            
+            if (!branchArray || branchArray.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">All available branches are already assigned to this role.</p>';
+                return;
+            }
+            
+            container.innerHTML = branchArray.map(branch => `
+                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors">
+                    <div class="flex items-center space-x-3">
+                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <span class="text-sm font-medium text-gray-900">${branch.name}</span>
+                    </div>
+                    <button onclick="assignRoleToBranch(${currentRoleId}, ${branch.id}, '${branch.name}')"
+                            class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-[#a88641] rounded-md hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
+                        <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Assign
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function closeAssignBranchModal() {
+            document.getElementById('assignBranchModal').classList.add('hidden');
+            currentRoleId = null;
+            currentRoleName = null;
+        }
+
+        async function assignRoleToBranch(roleId, branchId, branchName) {
+            try {
+                const response = await fetch('/RoleManagement/AssignToBranch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({ roleId: roleId, branchId: branchId })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification(`Role assigned to ${branchName} successfully`, 'success');
+                    // Refresh the branch lists instead of reloading the page
+                    showAssignBranchModal(roleId, currentRoleName);
+                } else {
+                    showNotification(data.message || 'Failed to assign role to branch', 'error');
+                }
+            } catch (error) {
+                showNotification('An error occurred while assigning the role', 'error');
+            }
+        }
+
+        async function removeRoleFromBranch(roleId, branchId, branchName) {
+            try {
+                const response = await fetch('/RoleManagement/RemoveFromBranch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({ roleId: roleId, branchId: branchId })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification(`Role removed from ${branchName} successfully`, 'success');
+                    // Refresh the branch lists
+                    showAssignBranchModal(roleId, currentRoleName);
+                } else {
+                    showNotification(data.message || 'Failed to remove role from branch', 'error');
+                }
+            } catch (error) {
+                showNotification('An error occurred while removing the role', 'error');
+            }
+        }
+
+        function showNotification(type, message) {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `p-4 mb-4 rounded-md shadow-lg transform transition-all duration-300 ${type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`;
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        ${type === 'success' ? 
+                            '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>' :
+                            '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>'
+                        }
+                    </svg>
+                    <span class="text-sm font-medium">${message}</span>
+                </div>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 300);
+            }, 5000);
+        }
+    </script>
+}
+
+<!-- Add AntiForgeryToken for AJAX requests -->
+@Html.AntiForgeryToken() 
+@Html.AntiForgeryToken() 

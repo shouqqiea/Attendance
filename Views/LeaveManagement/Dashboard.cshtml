@@ -1,0 +1,67 @@
+@{
+    ViewBag.Title = "Dashboard";
+    var leaveBalances = ViewBag.LeaveBalances as List<LetsCheckIn.Controllers.LeaveBalanceViewModel>;
+    var leaveRequests = ViewBag.LeaveRequests as List<LetsCheckIn.Controllers.LeaveRequestViewModel>;
+    Layout = "~/Views/Shared/_AuthenticatedLayout.cshtml";
+}
+
+<head>
+    <script src="~/js/leave-management.js"></script>
+</head>
+
+<div class="p-4 md:p-6">
+    <h2 class="text-2xl font-bold text-gray-900 mb-6">Welcome to Your Dashboard</h2>
+
+    <!-- Leave Balances -->
+    <div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Leave Balances</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            @if (leaveBalances != null)
+            {
+                foreach (var balance in leaveBalances)
+                {
+                    <div class="bg-white rounded-lg shadow p-4 flex flex-col items-center">
+                        <span class="text-sm text-gray-500">@balance.Type</span>
+                        <span class="text-2xl font-bold text-indigo-700">@balance.Remaining</span>
+                        <span class="text-xs text-gray-400">of @balance.Total left</span>
+                    </div>
+                }
+            }
+            else
+            {
+                <span>No leave balance data available.</span>
+            }
+        </div>
+    </div>
+
+    <!-- Recent Leave Requests -->
+    <div>
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Recent Leave Requests</h3>
+        <div>
+            @if (leaveRequests != null && leaveRequests.Count > 0)
+            {
+                var recent = leaveRequests.OrderByDescending(r => r.SubmittedOn).Take(5).ToList();
+                foreach (var request in recent)
+                {
+                    var statusColor = request.Status == "approved" ? "bg-green-100 text-green-800" : request.Status == "rejected" ? "bg-red-100 text-red-800" : request.Status == "pending" ? "bg-yellow-100 text-yellow-800" : "bg-gray-100 text-gray-800";
+                    <div class="flex items-center justify-between bg-white rounded-lg shadow p-4 mb-3">
+                        <div>
+                            <div class="font-medium">@request.LeaveType.ToUpperInvariant() Leave</div>
+                            <div class="text-xs text-gray-500">
+                                @((request.StartDate.HasValue ? request.StartDate.Value.ToString("MMM dd, yyyy") : "-") + " - " + (request.EndDate.HasValue ? request.EndDate.Value.ToString("MMM dd, yyyy") : "-"))
+                            </div>
+                            <div class="text-xs text-gray-400">
+                                Submitted: @(request.SubmittedOn.ToString("MMM dd, yyyy"))
+                            </div>
+                        </div>
+                        <span class="px-3 py-1 rounded-full text-xs font-semibold @statusColor">@request.Status.ToUpperInvariant()</span>
+                    </div>
+                }
+            }
+            else
+            {
+                <span>No leave requests found.</span>
+            }
+        </div>
+    </div>
+</div>

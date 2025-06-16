@@ -1,0 +1,168 @@
+@model UpdateBranchViewModel
+@{
+    ViewBag.Title = "Update Branch";
+    Layout = "~/Views/Shared/_AuthenticatedLayout.cshtml";
+}
+
+<div id="notificationContainer" class="fixed top-4 right-4 z-50"></div>
+
+<div class="max-w-3xl mx-auto mt-8">
+    <!-- Header with Branding -->
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center">
+            <h2 class="text-2xl font-bold text-gray-900">Update Branch</h2>
+            <span class="ml-2 bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded-full">HR</span>
+        </div>
+        <div class="flex items-center">
+            <img src="/images/logo-black-icon.png" alt="Logo" class="h-7 w-7" />
+            <h1 class="text-lg font-bold text-gray-900 ml-2">Lets<span class="text-[#a88641]">Check</span>In</h1>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <form id="updateBranchForm" class="space-y-6">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="branchId" value="@Model.BranchId" />
+
+            <!-- Branch Information -->
+            <div>
+                <h4 class="text-lg font-medium text-gray-900 mb-4">Branch Information</h4>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div>
+                        <label for="branchName" class="block text-sm font-medium text-gray-700 mb-1">Branch Name</label>
+                        <input type="text" id="branchName" value="@Model.BranchName"
+                               class="form-input w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring-[#a88641] sm:text-sm" required />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Information -->
+            <div>
+                <h4 class="text-lg font-medium text-gray-900 mb-4">Admin Information</h4>
+                <div class="bg-gray-50 rounded-lg p-4 space-y-4">
+                    <div>
+                        <label for="adminName" class="block text-sm font-medium text-gray-700">Admin Name</label>
+                        <input type="text" id="adminName" value="@Model.AdminName"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring-[#a88641] sm:text-sm" required />
+                    </div>
+                    <div>
+                        <label for="adminEmail" class="block text-sm font-medium text-gray-700">Admin Email</label>
+                        <input type="email" id="adminEmail" value="@Model.AdminEmail"
+                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring-[#a88641] sm:text-sm" required />
+                    </div>
+                </div>
+            </div>
+
+            <!-- Features Configuration -->
+            <div>
+                <h4 class="text-lg font-medium text-gray-900 mb-4">Features Configuration</h4>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-sm text-gray-500 mb-3">Enable or disable features for this branch. At least Location must be enabled.</p>
+                    <div class="space-y-3">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="enableLocation" @(Model.EnableLocation ? "checked" : "")
+                                   class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
+                            <label for="enableLocation" class="ml-3 block text-sm text-gray-700">
+                                <span class="font-medium">Location</span>
+                                <span class="text-gray-500 block text-xs">Enable location-based attendance tracking</span>
+                            </label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="enableNetwork" @(Model.EnableNetwork ? "checked" : "")
+                                   class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
+                            <label for="enableNetwork" class="ml-3 block text-sm text-gray-700">
+                                <span class="font-medium">Network</span>
+                                <span class="text-gray-500 block text-xs">Restrict attendance to specific network IPs</span>
+                            </label>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="enableBiometric" @(Model.EnableBiometric ? "checked" : "")
+                                   class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
+                            <label for="enableBiometric" class="ml-3 block text-sm text-gray-700">
+                                <span class="font-medium">Face Recognition</span>
+                                <span class="text-gray-500 block text-xs">Enable facial recognition for attendance</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-3 pt-4">
+                <a href="/Account/BranchList" 
+                   class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641]">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="px-4 py-2 text-sm font-medium text-white bg-[#a88641] border border-transparent rounded-md hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641]">
+                    Update Branch
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('updateBranchForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!document.getElementById('enableLocation').checked) {
+                showNotification('error', 'At least Location must be enabled.');
+                return;
+            }
+
+            const data = {
+                branchId: parseInt(document.getElementById('branchId').value),
+                branchName: document.getElementById('branchName').value,
+                adminName: document.getElementById('adminName').value,
+                adminEmail: document.getElementById('adminEmail').value,
+                enableLocation: document.getElementById('enableLocation').checked,
+                enableNetwork: document.getElementById('enableNetwork').checked,
+                enableBiometric: document.getElementById('enableBiometric').checked
+            };
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            fetch('/Account/UpdateBranch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showNotification('success', result.message);
+                    setTimeout(() => {
+                        window.location.href = '/Account/BranchList';
+                    }, 1500);
+                } else {
+                    showNotification('error', result.message);
+                    if (result.errors) {
+                        console.log('Validation errors:', result.errors);
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('error', 'An error occurred while updating the branch');
+            });
+        });
+
+        function showNotification(type, message) {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = `p-4 mb-4 rounded-md ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            notification.innerHTML = message;
+            
+            container.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+    </script>
+} 
