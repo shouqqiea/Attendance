@@ -599,7 +599,7 @@ namespace LetsCheckIn.Controllers
         // POST: /RoleManagement/AssignUser
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AssignUser([FromBody] AssignUserRequest request)
+        public async Task<IActionResult> AssignUser([FromForm] AssignUserRequest request)
         {
             try
             {
@@ -630,13 +630,17 @@ namespace LetsCheckIn.Controllers
             }
         }
 
+
         // POST: /RoleManagement/RemoveUser
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RemoveUser([FromBody] AssignUserRequest request)
+        public async Task<IActionResult> RemoveUser([FromForm] AssignUserRequest request)
         {
             try
             {
+                if (request == null)
+                    return Json(new { success = false, message = "Invalid request data" });
+
                 var currentUser = await _userManager.GetUserAsync(User);
                 if (currentUser == null) 
                     return Json(new { success = false, message = "User not authenticated" });
@@ -650,10 +654,12 @@ namespace LetsCheckIn.Controllers
                 
                 if (success)
                 {
+                    _logger.LogInformation($"User {request.UserId} successfully removed from role {request.RoleId} by {currentUser.Email}");
                     return Json(new { success = true, message = "User removed from role successfully" });
                 }
                 else
                 {
+                    _logger.LogWarning($"Failed to remove user {request.UserId} from role {request.RoleId}");
                     return Json(new { success = false, message = "Failed to remove user from role" });
                 }
             }

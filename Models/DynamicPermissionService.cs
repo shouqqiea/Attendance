@@ -166,18 +166,34 @@ namespace LetsCheckIn.Models
                 return true;
             }
 
-            // System roles can only be managed by SuperAdmin
+            // For system roles, allow user assignment/removal management by admins
+            // but restrict other operations like role creation/deletion/modification
             if (role.IsSystemRole)
             {
-                return false;
+                // Allow admins to manage user assignments to system roles
+                // System roles should be manageable by any admin, not just SuperAdmins
+                var accessibleBranchIds = await _branchAccessService.GetAccessibleBranchIdsAsync(userId);
+                
+                // If user has any accessible branches, allow system role management
+                // This is because system roles are typically assigned to all branches
+                if (accessibleBranchIds.Any())
+                {
+                    return true;
+                }
+                
+                // Fallback: check if role is assigned to accessible branches
+                var roleIsInAccessibleBranches = await _context.BranchRoles
+                    .AnyAsync(br => br.RoleId == roleId && br.IsActive && accessibleBranchIds.Contains(br.BranchId));
+                
+                return roleIsInAccessibleBranches;
             }
 
             // For non-system roles, check if user has access to any branch where this role is assigned
-            var accessibleBranchIds = await _branchAccessService.GetAccessibleBranchIdsAsync(userId);
-            var roleIsInAccessibleBranches = await _context.BranchRoles
-                .AnyAsync(br => br.RoleId == roleId && br.IsActive && accessibleBranchIds.Contains(br.BranchId));
+            var accessibleBranchIds2 = await _branchAccessService.GetAccessibleBranchIdsAsync(userId);
+            var roleIsInAccessibleBranches2 = await _context.BranchRoles
+                .AnyAsync(br => br.RoleId == roleId && br.IsActive && accessibleBranchIds2.Contains(br.BranchId));
 
-            return roleIsInAccessibleBranches;
+            return roleIsInAccessibleBranches2;
         }
 
         public async Task<bool> AssignRoleToUserAsync(string userId, int roleId, string assignedBy)
@@ -307,48 +323,56 @@ namespace LetsCheckIn.Models
         {
             _logger.LogInformation($"Attempting to remove role {roleId} from user {userId}");
             
-            // Get the role name first
-            var role = await _context.DynamicRoles
-                .FirstOrDefaultAsync(r => r.RoleId == roleId);
-            
-            if (role == null)
+            try
             {
-                _logger.LogError($"Role {roleId} not found");
-                return false;
-            }
-            
-            // Get the user
-            var user = await _userManager.FindByIdAsync(userId);
-            if (user == null)
-            {
-                _logger.LogError($"User {userId} not found");
-                return false;
-            }
-            
-            // Remove from ASP.NET Identity
-            var identityRoleResult = await _userManager.RemoveFromRoleAsync(user, role.RoleName);
-            if (!identityRoleResult.Succeeded)
-            {
-                _logger.LogError($"Failed to remove Identity role: {string.Join(", ", identityRoleResult.Errors.Select(e => e.Description))}");
-                return false;
-            }
-            _logger.LogInformation($"Successfully removed Identity role {role.RoleName}");
-            
-            // Remove from Dynamic Roles
-            var userRole = await _context.DynamicUserRoles
-                .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId && ur.IsActive);
+                // Get the role name first
+                var role = await _context.DynamicRoles
+                    .FirstOrDefaultAsync(r => r.RoleId == roleId);
+                
+                if (role == null)
+                {
+                    _logger.LogError($"Role {roleId} not found");
+                    return false;
+                }
+                
+                // Get the user
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
+                {
+                    _logger.LogError($"User {userId} not found");
+                    return false;
+                }
+                
+                // Remove from ASP.NET Identity
+                var identityRoleResult = await _userManager.RemoveFromRoleAsync(user, role.RoleName);
+                if (!identityRoleResult.Succeeded)
+                {
+                    _logger.LogError($"Failed to remove Identity role: {string.Join(", ", identityRoleResult.Errors.Select(e => e.Description))}");
+                    return false;
+                }
+                _logger.LogInformation($"Successfully removed Identity role {role.RoleName} from user {user.Email}");
+                
+                // Remove from Dynamic Roles
+                var userRole = await _context.DynamicUserRoles
+                    .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId && ur.IsActive);
 
-            if (userRole != null)
-            {
-                userRole.IsActive = false;
-                await _context.SaveChangesAsync();
-                _logger.LogInformation($"Successfully deactivated dynamic role assignment");
-                return true;
+                if (userRole != null)
+                {
+                    userRole.IsActive = false;
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation($"Successfully deactivated dynamic role assignment for user {user.Email}");
+                    return true;
+                }
+                else
+                {
+                    _logger.LogWarning($"No active dynamic role assignment found to remove");
+                    return true; // Return true since the Identity role was removed successfully
+                }
             }
-            else
+            catch (Exception ex)
             {
-                _logger.LogWarning($"No active dynamic role assignment found to remove");
-                return true; // Return true since the Identity role was removed successfully
+                _logger.LogError($"Exception in RemoveRoleFromUserAsync: {ex.Message}");
+                throw;
             }
         }
 

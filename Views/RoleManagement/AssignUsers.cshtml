@@ -9,6 +9,84 @@
     <!-- Notification Container -->
     <div id="notificationContainer" class="fixed top-4 right-4 z-50 w-full max-w-xs"></div>
 
+    <!-- Confirmation Modal -->
+    <div id="confirmationModal" class="fixed inset-0 z-50 hidden">
+        <!-- Modal Backdrop -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+        
+        <!-- Modal Content -->
+        <div class="fixed inset-0 flex items-center justify-center p-4">
+            <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-auto transform transition-all">
+                <!-- Modal Header -->
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-medium text-gray-900">Confirm User Removal</h3>
+                        <button onclick="closeConfirmationModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Modal Body -->
+                <div class="px-6 py-4">
+                    <div class="flex items-start space-x-3">
+                        <div class="flex-shrink-0">
+                            <svg id="modalWarningIcon" class="h-8 w-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm text-gray-600 mb-2">
+                                Are you sure you want to remove the following user from the role 
+                                <span class="font-semibold text-gray-900">@Model.Role.RoleName</span>?
+                            </p>
+                            
+                            <!-- System Role Warning (hidden by default) -->
+                            <div id="systemRoleWarning" class="hidden bg-orange-50 border border-orange-200 rounded-md p-3 mb-3">
+                                <div class="flex items-center">
+                                    <svg class="h-5 w-5 text-orange-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                                    </svg>
+                                    <p class="text-sm font-medium text-orange-800">System Role Warning</p>
+                                </div>
+                                <p class="text-xs text-orange-700 mt-1">
+                                    This is a system role removal. This action may affect critical system operations and permissions.
+                                </p>
+                            </div>
+                            
+                            <div class="bg-gray-50 rounded-md p-3 mt-3">
+                                <p id="modalUserName" class="font-medium text-gray-900"></p>
+                                <p id="modalUserEmail" class="text-sm text-gray-500"></p>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-3">
+                                This action will revoke all permissions associated with this role for the selected user.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Modal Footer -->
+                <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3 rounded-b-lg">
+                    <button onclick="closeConfirmationModal()" 
+                            class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
+                        Cancel
+                    </button>
+                    <button id="confirmRemoveBtn" 
+                            class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                        <span class="flex items-center">
+                            <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                            <span id="confirmButtonText">Remove User</span>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Content Area -->
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
         <!-- Header Section -->
@@ -135,19 +213,22 @@
                                         <p class="text-sm text-gray-500 truncate">@user.Email</p>
                                         <p class="text-xs text-gray-400">@user.BranchName</p>
                                     </div>
-                                    @if (!Model.Role.IsSystemRole)
-                                    {
-                                        <div class="flex justify-end sm:ml-4">
-                                            <button onclick="removeUser('@user.UserId', @Model.Role.RoleId, '@user.FullName')" 
-                                                    class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors min-h-[44px] min-w-[80px]">
-                                                <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                                    <div class="flex justify-end sm:ml-4">
+                                        <button onclick="showRemoveUserConfirmation('@user.UserId', @Model.Role.RoleId, '@user.FullName', '@user.Email', @Model.Role.IsSystemRole.ToString().ToLower())" 
+                                                class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium @(Model.Role.IsSystemRole ? "text-orange-600 border-orange-300 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-400" : "text-red-600 border-red-300 hover:bg-red-50 hover:text-red-700 hover:border-red-400") bg-white border rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 @(Model.Role.IsSystemRole ? "focus:ring-orange-500" : "focus:ring-red-500") transition-all duration-200 min-h-[44px] min-w-[80px] group">
+                                            <svg class="h-4 w-4 mr-1 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16"></path>
+                                            </svg>
+                                            <span class="hidden sm:inline">Remove</span>
+                                            <span class="sm:hidden">Del</span>
+                                            @if (Model.Role.IsSystemRole)
+                                            {
+                                                <svg class="h-3 w-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
                                                 </svg>
-                                                <span class="hidden sm:inline">Remove</span>
-                                                <span class="sm:hidden">Del</span>
-                                            </button>
-                                        </div>
-                                    }
+                                            }
+                                        </button>
+                                    </div>
                                 </div>
                             }
                         }
@@ -185,10 +266,18 @@
     <script>
         let availableCount = @Model.AvailableUsers.Count;
         let assignedCount = @Model.AssignedUsers.Count;
+        
+        // Store pending removal data
+        let pendingRemoval = {
+            userId: null,
+            roleId: null,
+            userName: null
+        };
 
         document.addEventListener('DOMContentLoaded', function() {
             initializeSearch();
             updateCounts();
+            initializeModalEvents();
         });
 
         function initializeSearch() {
@@ -197,6 +286,22 @@
 
             searchInput.addEventListener('input', filterUsers);
             clearButton.addEventListener('click', clearSearch);
+        }
+
+        function initializeModalEvents() {
+            // Close modal when clicking backdrop
+            document.getElementById('confirmationModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeConfirmationModal();
+                }
+            });
+
+            // Close modal with ESC key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    closeConfirmationModal();
+                }
+            });
         }
 
         function filterUsers() {
@@ -239,78 +344,175 @@
             document.getElementById('mobileAssignedCount').textContent = assignedCount;
         }
 
-        function assignUser(userId, roleId, userName) {
+                function assignUser(userId, roleId, userName) {
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-
+            
+            // Create FormData for anti-forgery token
+            const formData = new FormData();
+            formData.append('userId', userId);
+            formData.append('roleId', roleId);
+            formData.append('__RequestVerificationToken', token);
+            
             fetch('/RoleManagement/AssignUser', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': token
-                },
-                body: JSON.stringify({
-                    userId: userId,
-                    roleId: roleId
-                })
+                body: formData
             })
             .then(response => response.json())
             .then(result => {
                 if (result.success) {
-                    showNotification('success', `${userName} assigned to role successfully`);
+                    showNotification(`${userName} assigned to role successfully`, 'success');
                     // Move user card from available to assigned
                     moveUserCard(userId, 'available', 'assigned');
                     availableCount--;
                     assignedCount++;
                     updateCounts();
                 } else {
-                    showNotification('error', result.message);
+                    showNotification(result.message || 'Failed to assign user', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                showNotification('error', 'An error occurred while assigning user');
+                showNotification('An error occurred while assigning user', 'error');
             });
         }
 
-        function removeUser(userId, roleId, userName) {
+        function showRemoveUserConfirmation(userId, roleId, userName, userEmail, isSystemRole = false) {
+            // Store the removal data
+            pendingRemoval = {
+                userId: userId,
+                roleId: roleId,
+                userName: userName
+            };
+
+            // Update modal content
+            document.getElementById('modalUserName').textContent = userName;
+            document.getElementById('modalUserEmail').textContent = userEmail;
+
+            // Show/hide system role warning and update styling
+            const systemWarning = document.getElementById('systemRoleWarning');
+            const warningIcon = document.getElementById('modalWarningIcon');
+            const confirmBtn = document.getElementById('confirmRemoveBtn');
+            const confirmBtnText = document.getElementById('confirmButtonText');
+
+            if (isSystemRole) {
+                // Show system role warning
+                systemWarning.classList.remove('hidden');
+                
+                // Change icon color to orange for system roles
+                warningIcon.classList.remove('text-red-500');
+                warningIcon.classList.add('text-orange-500');
+                
+                // Change button styling for system roles
+                confirmBtn.classList.remove('bg-red-600', 'hover:bg-red-700', 'focus:ring-red-500');
+                confirmBtn.classList.add('bg-orange-600', 'hover:bg-orange-700', 'focus:ring-orange-500');
+                
+                // Update button text
+                confirmBtnText.textContent = 'Remove from System Role';
+            } else {
+                // Hide system role warning
+                systemWarning.classList.add('hidden');
+                
+                // Reset icon color
+                warningIcon.classList.remove('text-orange-500');
+                warningIcon.classList.add('text-red-500');
+                
+                // Reset button styling
+                confirmBtn.classList.remove('bg-orange-600', 'hover:bg-orange-700', 'focus:ring-orange-500');
+                confirmBtn.classList.add('bg-red-600', 'hover:bg-red-700', 'focus:ring-red-500');
+                
+                // Reset button text
+                confirmBtnText.textContent = 'Remove User';
+            }
+
+            // Show modal
+            document.getElementById('confirmationModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+
+            // Focus on the modal for accessibility
+            setTimeout(() => {
+                document.getElementById('confirmRemoveBtn').focus();
+            }, 100);
+        }
+
+        function closeConfirmationModal() {
+            document.getElementById('confirmationModal').classList.add('hidden');
+            document.body.style.overflow = ''; // Restore scrolling
+            
+            // Clear pending removal data
+            pendingRemoval = {
+                userId: null,
+                roleId: null,
+                userName: null
+            };
+        }
+
+        // Add event listener for the confirm button
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('confirmRemoveBtn').addEventListener('click', function() {
+                if (pendingRemoval.userId && pendingRemoval.roleId) {
+                    confirmRemoveUser();
+                }
+            });
+        });
+
+        function confirmRemoveUser() {
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            const { userId, roleId, userName } = pendingRemoval;
+
+            // Disable the button and show loading state
+            const confirmBtn = document.getElementById('confirmRemoveBtn');
+            const originalContent = confirmBtn.innerHTML;
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = `
+                <svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Removing...
+            `;
+
+            // Create FormData instead of JSON for anti-forgery token
+            const formData = new FormData();
+            formData.append('userId', userId);
+            formData.append('roleId', roleId);
+            formData.append('__RequestVerificationToken', token);
 
             fetch('/RoleManagement/RemoveUser', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': token
-                },
-                body: JSON.stringify({
-                    userId: userId,
-                    roleId: roleId
-                })
+                body: formData
             })
             .then(response => response.json())
             .then(result => {
                 if (result.success) {
-                    showNotification('success', `${userName} removed from role successfully`);
+                    showNotification(`${userName} removed from role successfully`, 'success');
                     // Move user card from assigned to available
                     moveUserCard(userId, 'assigned', 'available');
                     assignedCount--;
                     availableCount++;
                     updateCounts();
+                    closeConfirmationModal();
                 } else {
-                    showNotification('error', result.message);
+                    showNotification(result.message || 'Failed to remove user', 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                showNotification('error', 'An error occurred while removing user');
+                showNotification('An error occurred while removing user', 'error');
+            })
+            .finally(() => {
+                // Restore button state
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = originalContent;
             });
         }
 
         function moveUserCard(userId, from, to) {
             const fromContainer = document.getElementById(from + 'Users');
             const toContainer = document.getElementById(to + 'Users');
-            const userCard = Array.from(fromContainer.children).find(card => 
-                card.querySelector('button').getAttribute('onclick').includes(`'${userId}'`)
-            );
+            const userCard = Array.from(fromContainer.children).find(card => {
+                const button = card.querySelector('button');
+                return button && button.getAttribute('onclick') && button.getAttribute('onclick').includes(`'${userId}'`);
+            });
 
             if (userCard) {
                 // Update card styling and button
@@ -319,21 +521,33 @@
                     userCard.classList.add('assigned-user', 'border-green-200', 'bg-green-50');
                     userCard.classList.remove('border-gray-200');
                     
+                    // Get user data from the card
+                    const userName = userCard.querySelector('h4').textContent;
+                    const userEmail = userCard.querySelector('p').textContent;
+                    
                     const button = userCard.querySelector('button');
-                    button.outerHTML = `<button onclick="removeUser('${userId}', @Model.Role.RoleId, '${userCard.dataset.name}')" 
-                        class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-md hover:bg-red-50 hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors min-h-[44px] min-w-[80px]">
-                        <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                    const isSystemRole = @Model.Role.IsSystemRole.ToString().ToLower();
+                    const buttonColor = isSystemRole ? 'orange' : 'red';
+                    const warningIcon = isSystemRole ? '<svg class="h-3 w-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path></svg>' : '';
+                    
+                    button.outerHTML = `<button onclick="showRemoveUserConfirmation('${userId}', @Model.Role.RoleId, '${userName}', '${userEmail}', ${isSystemRole})" 
+                        class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-${buttonColor}-600 bg-white border border-${buttonColor}-300 rounded-md hover:bg-${buttonColor}-50 hover:text-${buttonColor}-700 hover:border-${buttonColor}-400 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-${buttonColor}-500 transition-all duration-200 min-h-[44px] min-w-[80px] group">
+                        <svg class="h-4 w-4 mr-1 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16"></path>
                         </svg>
                         <span class="hidden sm:inline">Remove</span>
                         <span class="sm:hidden">Del</span>
+                        ${warningIcon}
                     </button>`;
                 } else {
                     userCard.classList.remove('assigned-user', 'border-green-200', 'bg-green-50');
                     userCard.classList.add('available-user', 'border-gray-200');
                     
+                    // Get user data from the card
+                    const userName = userCard.querySelector('h4').textContent;
+                    
                     const button = userCard.querySelector('button');
-                    button.outerHTML = `<button onclick="assignUser('${userId}', @Model.Role.RoleId, '${userCard.dataset.name}')" 
+                    button.outerHTML = `<button onclick="assignUser('${userId}', @Model.Role.RoleId, '${userName}')" 
                         class="inline-flex items-center justify-center px-3 py-2 text-sm font-medium text-white bg-[#a88641] border border-transparent rounded-md hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors min-h-[44px] min-w-[80px]">
                         <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -347,7 +561,7 @@
             }
         }
 
-        function showNotification(type, message) {
+        function showNotification(message, type) {
             const container = document.getElementById('notificationContainer');
             const notification = document.createElement('div');
             notification.className = `p-4 mb-4 rounded-md shadow-lg transform transition-all duration-300 ${type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200'}`;
