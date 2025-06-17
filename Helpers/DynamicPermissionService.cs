@@ -518,6 +518,7 @@ namespace LetsCheckIn.Helpers
                 
                 // Leave Management
                 new Permission { PermissionName = "leave.view", Description = "View leave requests", Category = "Leave Management" },
+                new Permission { PermissionName = "leave.data", Description = "View leave data and reports", Category = "Leave Management" },
                 new Permission { PermissionName = "leave.create", Description = "Create leave requests", Category = "Leave Management" },
                 new Permission { PermissionName = "leave.approve", Description = "Approve leave requests", Category = "Leave Management" },
                 new Permission { PermissionName = "leave.reject", Description = "Reject leave requests", Category = "Leave Management" },
@@ -550,20 +551,20 @@ namespace LetsCheckIn.Helpers
                     "user.view", "user.create", "user.edit", "user.delete",
                     "role.view", "role.create", "role.edit", "role.delete", "role.assign",
                     "branch.view", "branch.create", "branch.edit", "branch.delete",
-                    "leave.view", "leave.create", "leave.approve", "leave.reject"
+                    "leave.view", "leave.data", "leave.create", "leave.approve", "leave.reject"
                 }),
                 ("Admin", "Branch administrator", true, new List<string> 
                 { 
                     "dashboard.view", "dashboard.analytics", "dashboard.reports", "dashboard.export",
                     "user.view", "user.create", "user.edit", "user.delete",
                     "branch.view", "branch.create", "branch.edit",
-                    "leave.view", "leave.approve", "leave.reject"
+                    "leave.view", "leave.data", "leave.approve", "leave.reject"
                 }),
                 ("Manager", "Department manager", true, new List<string> 
                 { 
                     "dashboard.view", "dashboard.analytics", "dashboard.reports", "dashboard.export",
                     "user.view", "user.create", "user.edit", "user.delete",
-                    "leave.view", "leave.approve", "leave.reject"
+                    "leave.view", "leave.data", "leave.approve", "leave.reject"
                 }),
                 ("Employee", "Regular employee", true, new List<string> 
                 { 

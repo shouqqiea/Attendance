@@ -13,6 +13,8 @@ using System.Threading.Tasks;
 using System.IO;
 using Microsoft.Extensions.Logging;
 using LetsCheckIn.Helpers;
+using OfficeOpenXml;
+using System.Text;
 
 namespace LetsCheckIn.Controllers
 {
@@ -358,40 +360,39 @@ namespace LetsCheckIn.Controllers
         {
             try
             {
-                var currentUser = await _userManager.GetUserAsync(User);
-                if (currentUser == null) return Challenge();
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null) return Challenge();
 
-                var accessibleBranchIds = await _branchAccessService.GetAccessibleBranchIdsAsync(currentUser.Id);
+                var employee = await _context.Employee
+                    .Include(e => e.Branch)
+                    .FirstOrDefaultAsync(e => e.UserId == user.Id);
+                if (employee == null) return NotFound("Employee record not found");
 
-                var pendingStatusId = (await GetStatusTypeByNameAsync("pending")).StatusId;
-                var emergencyStatusId = (await GetStatusTypeByNameAsync("emergency")).StatusId;
+                // Get accessible branches based on user role and permissions
+                var accessibleBranches = await _branchAccessService.GetAccessibleBranchIdsAsync(user.Id);
 
+                // Get all leave requests from accessible branches
                 var allRequests = await _context.LeaveRequests
-                .Include(lr => lr.LeaveType)
-                .Include(lr => lr.Employee)
-                    .ThenInclude(e => e.Branch)
+                    .Include(lr => lr.LeaveType)
                     .Include(lr => lr.Status)
-                    .Where(lr => accessibleBranchIds.Contains(lr.Employee.BranchId)) // Filter by accessible branches
+                    .Include(lr => lr.Employee)
+                    .Where(lr => accessibleBranches.Contains(lr.Employee.BranchId))
                     .OrderByDescending(lr => lr.SubmissionDate)
                     .Select(lr => new LeaveRequestViewModel(lr.LeaveType.Name, lr.LeaveReason ?? "No reason provided")
-                {
-                    Id = lr.LeaveRequestId,
-                    StartDate = lr.StartDate,
-                    EndDate = lr.EndDate,
+                    {
+                        Id = lr.LeaveRequestId,
+                        StartDate = lr.StartDate,
+                        EndDate = lr.EndDate,
                         Status = lr.Status.StatusName,
-                    SubmittedOn = lr.SubmissionDate,
-                        Emergency = lr.Status.StatusName == "emergency" ? "yes" : "no",
+                        SubmittedOn = lr.SubmissionDate,
                         AttachmentFileName = lr.AttachmentPath,
-                        EmployeeName = lr.Employee.FirstName + " " + lr.Employee.LastName,
-                        EmployeeEmail = lr.Employee.Email,
-                        LeaveType = lr.LeaveType.Name,
-                        Reason = lr.LeaveReason,
-                        Days = (lr.EndDate - lr.StartDate).Days + 1,
-                        RejectionReason = lr.RejectedReason
-                })
-                .ToListAsync();
+                        RejectionReason = lr.RejectedReason,
+                        EmployeeName = $"{lr.Employee.FirstName} {lr.Employee.LastName}",
+                        EmployeeEmail = lr.Employee.Email
+                    })
+                    .ToListAsync();
 
-                // Group requests by submission date
+                // Separate pending requests for the approval interface
                 var pendingRequests = allRequests.Where(r => r.Status == "pending" || r.Status == "emergency").ToList();
                 var groupedRequests = pendingRequests
                     .GroupBy(r => r.SubmittedOn.Date)
@@ -405,6 +406,111 @@ namespace LetsCheckIn.Controllers
             catch (Exception ex)
             {
                 _logger.LogError($"Error in LeaveApproval: {ex.Message}");
+                throw;
+            }
+        }
+
+        [DynamicPermissionAuthorize("leave.data")]
+        public async Task<IActionResult> LeaveData(string search = "", string leaveType = "", string status = "", DateTime? startDate = null, DateTime? endDate = null)
+        {
+            try
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null) return Challenge();
+
+                var employee = await _context.Employee
+                    .Include(e => e.Branch)
+                    .FirstOrDefaultAsync(e => e.UserId == user.Id);
+                if (employee == null) return NotFound("Employee record not found");
+
+                // Get accessible branches based on user role and permissions
+                var accessibleBranches = await _branchAccessService.GetAccessibleBranchIdsAsync(user.Id);
+
+                // Build the query
+                var query = _context.LeaveRequests
+                    .Include(lr => lr.LeaveType)
+                    .Include(lr => lr.Status)
+                    .Include(lr => lr.Employee)
+                    .Where(lr => accessibleBranches.Contains(lr.Employee.BranchId));
+
+                // Apply filters
+                if (!string.IsNullOrEmpty(search))
+                {
+                    query = query.Where(lr => 
+                        lr.Employee.FirstName.Contains(search) ||
+                        lr.Employee.LastName.Contains(search) ||
+                        lr.Employee.Email.Contains(search) ||
+                        lr.LeaveType.Name.Contains(search) ||
+                        lr.LeaveReason.Contains(search));
+                }
+
+                if (!string.IsNullOrEmpty(leaveType))
+                {
+                    query = query.Where(lr => lr.LeaveType.Name == leaveType);
+                }
+
+                if (!string.IsNullOrEmpty(status))
+                {
+                    query = query.Where(lr => lr.Status.StatusName == status);
+                }
+
+                if (startDate.HasValue)
+                {
+                    query = query.Where(lr => lr.StartDate >= startDate.Value);
+                }
+
+                if (endDate.HasValue)
+                {
+                    query = query.Where(lr => lr.EndDate <= endDate.Value);
+                }
+
+                // Get filtered results
+                var leaveRequests = await query
+                    .OrderByDescending(lr => lr.SubmissionDate)
+                    .Select(lr => new LeaveDataViewModel
+                    {
+                        Id = lr.LeaveRequestId,
+                        EmployeeName = $"{lr.Employee.FirstName} {lr.Employee.LastName}",
+                        EmployeeEmail = lr.Employee.Email,
+                        LeaveType = lr.LeaveType.Name,
+                        StartDate = lr.StartDate,
+                        EndDate = lr.EndDate,
+                        Duration = (lr.EndDate - lr.StartDate).Days + 1,
+                        Status = lr.Status.StatusName,
+                        Reason = lr.LeaveReason ?? "No reason provided",
+                        SubmittedOn = lr.SubmissionDate,
+                        AttachmentFileName = lr.AttachmentPath,
+                        RejectionReason = lr.RejectedReason
+                    })
+                    .ToListAsync();
+
+                // Get distinct leave types and statuses for filter dropdowns
+                var leaveTypes = await _context.LeaveTypes
+                    .Where(lt => accessibleBranches.Contains(lt.BranchId) && lt.IsActive)
+                    .Select(lt => lt.Name)
+                    .Distinct()
+                    .OrderBy(name => name)
+                    .ToListAsync();
+
+                var statuses = await _context.StatusTypes
+                    .Select(st => st.StatusName)
+                    .OrderBy(name => name)
+                    .ToListAsync();
+
+                ViewBag.LeaveRequests = leaveRequests;
+                ViewBag.LeaveTypes = leaveTypes;
+                ViewBag.Statuses = statuses;
+                ViewBag.Search = search;
+                ViewBag.SelectedLeaveType = leaveType;
+                ViewBag.SelectedStatus = status;
+                ViewBag.StartDate = startDate?.ToString("yyyy-MM-dd");
+                ViewBag.EndDate = endDate?.ToString("yyyy-MM-dd");
+
+                return View();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error in LeaveData: {ex.Message}");
                 throw;
             }
         }
@@ -502,37 +608,175 @@ namespace LetsCheckIn.Controllers
         {
             try
             {
+                _logger.LogInformation($"Attempting to download attachment for leave request ID: {id}");
+
                 var user = await _userManager.GetUserAsync(User);
-                if (user == null) return Challenge();
+                if (user == null) 
+                {
+                    _logger.LogWarning("User not authenticated for download request");
+                    return Challenge();
+                }
 
                 var employee = await _context.Employee
                     .FirstOrDefaultAsync(e => e.UserId == user.Id);
-                if (employee == null) return NotFound("Employee record not found");
+                if (employee == null) 
+                {
+                    _logger.LogWarning($"Employee record not found for user {user.Id}");
+                    return NotFound("Employee record not found");
+                }
 
                 var leaveRequest = await _context.LeaveRequests
-                    .FirstOrDefaultAsync(lr => lr.LeaveRequestId == id && 
-                        (lr.EmployeeId == employee.EmployeeId || User.IsInRole("Admin") || User.IsInRole("Manager")));
+                    .Include(lr => lr.Employee)
+                    .FirstOrDefaultAsync(lr => lr.LeaveRequestId == id);
 
-                if (leaveRequest == null || string.IsNullOrEmpty(leaveRequest.AttachmentPath))
+                if (leaveRequest == null)
                 {
-                    return NotFound("Attachment not found");
+                    _logger.LogWarning($"Leave request with ID {id} not found");
+                    return NotFound("Leave request not found");
+                }
+
+                if (string.IsNullOrEmpty(leaveRequest.AttachmentPath))
+                {
+                    _logger.LogWarning($"No attachment found for leave request ID {id}");
+                    return NotFound("No attachment found for this leave request");
+                }
+
+                _logger.LogInformation($"Found leave request {id} with attachment: {leaveRequest.AttachmentPath}");
+
+                // Check if user can access this attachment
+                bool canAccess = false;
+                
+                // Employee can access their own attachments
+                if (leaveRequest.EmployeeId == employee.EmployeeId)
+                {
+                    canAccess = true;
+                    _logger.LogInformation($"User {user.Id} accessing their own attachment");
+                }
+                else
+                {
+                    // Get permission service to check user permissions properly
+                    var permissionService = HttpContext.RequestServices.GetRequiredService<IDynamicPermissionService>();
+                    
+                    // Check if user has permission to view leave requests or approve them
+                    var hasViewPermission = await permissionService.HasPermissionAsync(user.Id, "leave.view");
+                    var hasApprovePermission = await permissionService.HasPermissionAsync(user.Id, "leave.approve");
+                    var hasDataPermission = await permissionService.HasPermissionAsync(user.Id, "leave.data");
+                    
+                    if (hasViewPermission || hasApprovePermission || hasDataPermission)
+                    {
+                        var accessibleBranches = await _branchAccessService.GetAccessibleBranchIdsAsync(user.Id);
+                        canAccess = accessibleBranches.Contains(leaveRequest.Employee.BranchId);
+                        _logger.LogInformation($"User {user.Id} has permission to view leaves. Can access branch {leaveRequest.Employee.BranchId}: {canAccess}");
+                    }
+                    else
+                    {
+                        _logger.LogInformation($"User {user.Id} does not have leave.view, leave.approve, or leave.data permissions");
+                    }
+                }
+
+                if (!canAccess)
+                {
+                    _logger.LogWarning($"User {user.Id} does not have permission to access attachment for leave request {id}");
+                    return StatusCode(403, "You don't have permission to access this attachment");
                 }
 
                 var filePath = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "leave-attachments", leaveRequest.AttachmentPath);
+                _logger.LogInformation($"Looking for file at path: {filePath}");
+
                 if (!System.IO.File.Exists(filePath))
                 {
-                    return NotFound("File not found");
+                    _logger.LogWarning($"File not found at path: {filePath}");
+                    
+                    // Let's also check if the file exists with different casing or in alternative locations
+                    var directory = Path.GetDirectoryName(filePath);
+                    if (Directory.Exists(directory))
+                    {
+                        var filesInDir = Directory.GetFiles(directory);
+                        _logger.LogInformation($"Files in directory: {string.Join(", ", filesInDir.Select(f => Path.GetFileName(f)))}");
+                        
+                        // Try to find a file that matches case-insensitively
+                        var requestedFileName = Path.GetFileName(leaveRequest.AttachmentPath);
+                        var matchingFile = filesInDir.FirstOrDefault(f => 
+                            string.Equals(Path.GetFileName(f), requestedFileName, StringComparison.OrdinalIgnoreCase));
+                        
+                        if (matchingFile != null)
+                        {
+                            _logger.LogInformation($"Found file with different casing: {matchingFile}");
+                            filePath = matchingFile;
+                        }
+                    }
+                }
+
+                if (!System.IO.File.Exists(filePath))
+                {
+                    return NotFound("File not found on server. The attachment may have been moved or deleted.");
                 }
 
                 var fileName = Path.GetFileName(leaveRequest.AttachmentPath);
-                var contentType = "application/octet-stream";
+                var contentType = GetContentType(fileName);
+                
+                _logger.LogInformation($"Successfully serving attachment: {fileName} (Content-Type: {contentType}) for leave request {id}");
                 return PhysicalFile(filePath, contentType, fileName);
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error downloading attachment: {ex.Message}");
+                _logger.LogError($"Error downloading attachment for leave request {id}: {ex.Message}\n{ex.StackTrace}");
                 return StatusCode(500, "An error occurred while downloading the file");
             }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DebugAttachment(int id)
+        {
+            try
+            {
+                var leaveRequest = await _context.LeaveRequests
+                    .Include(lr => lr.Employee)
+                    .FirstOrDefaultAsync(lr => lr.LeaveRequestId == id);
+
+                if (leaveRequest == null)
+                {
+                    return Json(new { error = "Leave request not found", id = id });
+                }
+
+                var filePath = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "leave-attachments", leaveRequest.AttachmentPath ?? "null");
+                var fileExists = System.IO.File.Exists(filePath);
+                
+                var directoryPath = Path.Combine(_webHostEnvironment.WebRootPath, "uploads", "leave-attachments");
+                var directoryExists = Directory.Exists(directoryPath);
+                var filesInDirectory = directoryExists ? Directory.GetFiles(directoryPath).Select(f => Path.GetFileName(f)).ToList() : new List<string>();
+
+                return Json(new {
+                    leaveRequestId = id,
+                    attachmentPath = leaveRequest.AttachmentPath,
+                    fullFilePath = filePath,
+                    fileExists = fileExists,
+                    directoryExists = directoryExists,
+                    filesInDirectory = filesInDirectory,
+                    employeeId = leaveRequest.EmployeeId,
+                    employeeName = $"{leaveRequest.Employee.FirstName} {leaveRequest.Employee.LastName}"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message, stackTrace = ex.StackTrace });
+            }
+        }
+
+        private string GetContentType(string fileName)
+        {
+            var extension = Path.GetExtension(fileName).ToLowerInvariant();
+            return extension switch
+            {
+                ".pdf" => "application/pdf",
+                ".doc" => "application/msword",
+                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".txt" => "text/plain",
+                _ => "application/octet-stream"
+            };
         }
 
         public class RejectLeaveRequestModel
@@ -607,5 +851,21 @@ namespace LetsCheckIn.Controllers
         public string Description { get; set; }
         public bool IsActive { get; set; }
         public int BranchId { get; set; }
+    }
+
+    public class LeaveDataViewModel
+    {
+        public int Id { get; set; }
+        public string EmployeeName { get; set; }
+        public string EmployeeEmail { get; set; }
+        public string LeaveType { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public int Duration { get; set; }
+        public string Status { get; set; }
+        public string Reason { get; set; }
+        public DateTime SubmittedOn { get; set; }
+        public string? AttachmentFileName { get; set; }
+        public string? RejectionReason { get; set; }
     }
 }

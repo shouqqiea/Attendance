@@ -80,26 +80,47 @@
                             </a>
                         </li>
                     }
-                    @if (await Html.HasPermission("leave.approve"))
+                    @if (await Html.HasAnyPermission("leave.approve", "leave.view", "leave.data", "leave.create"))
                     {
-                        <li>
-                            <a href="/LeaveManagement/LeaveApproval" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black  transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveApproval") ? "active" : "")">
+                        <li class="space-y-2">
+                            <button type="button" id="mobileLeaveMenuButton" class="w-full flex items-center justify-start p-2 rounded-md hover:bg-[#916f34] hover:text-black transition-colors cursor-pointer text-left">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
                                 </svg>
-                                Leave Management
-                            </a>
-                        </li>
-                    }
-                    @if (await Html.HasPermission("leave.create"))
-                    {
-                        <li>
-                            <a href="/LeaveManagement/LeaveRequest" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black  transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveRequest") ? "active" : "")">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+                                <span class="text-left">Leave Management</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-auto transform transition-transform" id="mobileLeaveSubmenuIcon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                                 </svg>
-                                Leave Request
-                            </a>
+                            </button>
+                            <div class="pl-10 hidden" id="mobileLeaveSubmenu">
+                                @if (await Html.HasPermission("leave.approve"))
+                                {
+                                    <a href="/LeaveManagement/LeaveApproval" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveApproval") ? "active" : "")">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Leave Approval
+                                    </a>
+                                }
+                                @if (await Html.HasPermission("leave.data"))
+                                {
+                                    <a href="/LeaveManagement/LeaveData" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveData") ? "active" : "")">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Leave Data
+                                    </a>
+                                }
+                                @if (await Html.HasPermission("leave.create"))
+                                {
+                                    <a href="/LeaveManagement/LeaveRequest" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveRequest") ? "active" : "")">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Leave Request
+                                    </a>
+                                }
+                            </div>
                         </li>
                     }
                     @if (await Html.HasPermission("branch.view"))
@@ -191,26 +212,47 @@
                             </a>
                         </li>
                     }
-                    @if (await Html.HasPermission("leave.approve"))
+                    @if (await Html.HasAnyPermission("leave.approve", "leave.view", "leave.data", "leave.create"))
                     {
-                        <li>
-                            <a href="/LeaveManagement/LeaveApproval" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black  transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveApproval") ? "active" : "")">
+                        <li class="space-y-2">
+                            <button type="button" id="leaveMenuButton" class="w-full flex items-center justify-start p-2 rounded-md hover:bg-[#916f34] hover:text-black transition-colors cursor-pointer text-left">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"></path>
                                 </svg>
-                                Leave Management
-                            </a>
-                        </li>
-                    }
-                    @if (await Html.HasPermission("leave.create"))
-                    {
-                        <li>
-                            <a href="/LeaveManagement/LeaveRequest" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black  transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveRequest") ? "active" : "")">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-3" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+                                <span class="text-left">Leave Management</span>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-auto transform transition-transform" id="leaveSubmenuIcon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"></path>
                                 </svg>
-                                Leave Request
-                            </a>
+                            </button>
+                            <div class="pl-10 hidden" id="leaveSubmenu">
+                                @if (await Html.HasPermission("leave.approve"))
+                                {
+                                    <a href="/LeaveManagement/LeaveApproval" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveApproval") ? "active" : "")">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Leave Approval
+                                    </a>
+                                }
+                                @if (await Html.HasPermission("leave.data"))
+                                {
+                                    <a href="/LeaveManagement/LeaveData" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveData") ? "active" : "")">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Leave Data
+                                    </a>
+                                }
+                                @if (await Html.HasPermission("leave.create"))
+                                {
+                                    <a href="/LeaveManagement/LeaveRequest" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveRequest") ? "active" : "")">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        Leave Request
+                                    </a>
+                                }
+                            </div>
                         </li>
                     }
                     @if (await Html.HasPermission("branch.view"))
@@ -506,11 +548,29 @@
 
             // Initialize current page submenu state
             const currentPath = window.location.pathname;
+            
+            // Auto-expand Employee submenu if on UserManagement page
             if (currentPath.startsWith('/UserManagement')) {
                 const submenu = document.getElementById('employeeSubmenu');
                 const icon = document.getElementById('employeeSubmenuIcon');
                 const mobileSubmenu = document.getElementById('mobileEmployeeSubmenu');
                 const mobileIcon = document.getElementById('mobileEmployeeSubmenuIcon');
+                if (submenu && icon) {
+                    submenu.classList.remove('hidden');
+                    icon.classList.add('rotate-180');
+                }
+                if (mobileSubmenu && mobileIcon) {
+                    mobileSubmenu.classList.remove('hidden');
+                    mobileIcon.classList.add('rotate-180');
+                }
+            }
+            
+            // Auto-expand Leave Management submenu if on LeaveManagement page
+            if (currentPath.startsWith('/LeaveManagement')) {
+                const submenu = document.getElementById('leaveSubmenu');
+                const icon = document.getElementById('leaveSubmenuIcon');
+                const mobileSubmenu = document.getElementById('mobileLeaveSubmenu');
+                const mobileIcon = document.getElementById('mobileLeaveSubmenuIcon');
                 if (submenu && icon) {
                     submenu.classList.remove('hidden');
                     icon.classList.add('rotate-180');
@@ -564,6 +624,22 @@
         document.getElementById('mobileEmployeeMenuButton')?.addEventListener('click', function() {
             const submenu = document.getElementById('mobileEmployeeSubmenu');
             const icon = document.getElementById('mobileEmployeeSubmenuIcon');
+            submenu.classList.toggle('hidden');
+            icon.classList.toggle('rotate-180');
+        });
+
+        // Leave submenu toggle function
+        document.getElementById('leaveMenuButton')?.addEventListener('click', function() {
+            const submenu = document.getElementById('leaveSubmenu');
+            const icon = document.getElementById('leaveSubmenuIcon');
+            submenu.classList.toggle('hidden');
+            icon.classList.toggle('rotate-180');
+        });
+
+        // Mobile leave submenu toggle function
+        document.getElementById('mobileLeaveMenuButton')?.addEventListener('click', function() {
+            const submenu = document.getElementById('mobileLeaveSubmenu');
+            const icon = document.getElementById('mobileLeaveSubmenuIcon');
             submenu.classList.toggle('hidden');
             icon.classList.toggle('rotate-180');
         });
