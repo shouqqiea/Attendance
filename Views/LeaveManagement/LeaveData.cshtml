@@ -82,19 +82,44 @@
             </div>
 
             <!-- Filter Actions -->
-            <div class="flex flex-col sm:flex-row gap-3 sm:justify-end">
-                <a href="/LeaveManagement/LeaveData" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
-                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
-                    Clear Filters
-                </a>
-                <button type="submit" class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#a88641] hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
-                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
-                    </svg>
-                    Apply Filters
-                </button>
+            <div class="flex flex-col sm:flex-row gap-3 sm:justify-between">
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <!-- Export Buttons -->
+                    <div class="flex gap-2">
+                        <button type="button" 
+                                onclick="exportData('excel')" 
+                                class="inline-flex items-center justify-center px-3 py-2 border border-green-300 rounded-md shadow-sm text-sm font-medium text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                                title="Export to Excel (.xlsx)">
+                            <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Excel
+                        </button>
+                        <button type="button" 
+                                onclick="exportData('csv')" 
+                                class="inline-flex items-center justify-center px-3 py-2 border border-blue-300 rounded-md shadow-sm text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
+                                title="Export to CSV">
+                            <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            CSV
+                        </button>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <a href="/LeaveManagement/LeaveData" class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
+                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Clear Filters
+                    </a>
+                    <button type="submit" class="inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#a88641] hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
+                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.707A1 1 0 013 7V4z" />
+                        </svg>
+                        Apply Filters
+                    </button>
+                </div>
             </div>
         </form>
     </div>
@@ -294,6 +319,64 @@
         function showRequestDetails(requestId) {
             // This can be expanded to show a modal with full request details
             showNotification('Feature coming soon - detailed view for request ' + requestId, 'info');
+        }
+
+        /**
+         * Export filtered leave data to Excel or CSV format
+         * Preserves current filter parameters and sends them to export endpoints
+         */
+        function exportData(format) {
+            try {
+                // Get current filter values from the form
+                const searchValue = document.querySelector('input[name="search"]').value || '';
+                const leaveTypeValue = document.querySelector('select[name="leaveType"]').value || '';
+                const statusValue = document.querySelector('select[name="status"]').value || '';
+                const startDateValue = document.querySelector('input[name="startDate"]').value || '';
+                const endDateValue = document.querySelector('input[name="endDate"]').value || '';
+
+                // Build query parameters for export
+                const params = new URLSearchParams();
+                if (searchValue) params.append('search', searchValue);
+                if (leaveTypeValue) params.append('leaveType', leaveTypeValue);
+                if (statusValue) params.append('status', statusValue);
+                if (startDateValue) params.append('startDate', startDateValue);
+                if (endDateValue) params.append('endDate', endDateValue);
+
+                // Determine export URL based on format
+                let exportUrl;
+                if (format === 'excel') {
+                    exportUrl = '/LeaveManagement/ExportToExcel';
+                    showNotification('Preparing Excel export...', 'info');
+                } else if (format === 'csv') {
+                    exportUrl = '/LeaveManagement/ExportToCsv';
+                    showNotification('Preparing CSV export...', 'info');
+                } else {
+                    showNotification('Invalid export format specified', 'error');
+                    return;
+                }
+
+                // Add query parameters to URL
+                const fullUrl = params.toString() ? `${exportUrl}?${params.toString()}` : exportUrl;
+
+                // Create invisible download link and trigger download
+                const downloadLink = document.createElement('a');
+                downloadLink.href = fullUrl;
+                downloadLink.download = ''; // Let server determine filename
+                downloadLink.style.display = 'none';
+                
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+
+                // Show success notification after a short delay
+                setTimeout(() => {
+                    showNotification(`Export initiated successfully. Your ${format.toUpperCase()} file should download shortly.`, 'success');
+                }, 1000);
+
+            } catch (error) {
+                console.error('Export error:', error);
+                showNotification('An error occurred during export. Please try again.', 'error');
+            }
         }
 
         function showNotification(message, type) {

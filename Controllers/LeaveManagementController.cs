@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 using System.IO;
 using Microsoft.Extensions.Logging;
 using LetsCheckIn.Helpers;
-using OfficeOpenXml;
+using ClosedXML.Excel;
 using System.Text;
 
 namespace LetsCheckIn.Controllers
@@ -513,6 +513,276 @@ namespace LetsCheckIn.Controllers
                 _logger.LogError($"Error in LeaveData: {ex.Message}");
                 throw;
             }
+        }
+
+        /// <summary>
+        /// Exports filtered leave data to Excel format (.xlsx)
+        /// Uses ClosedXML library (MIT licensed) - completely free for all use cases
+        /// </summary>
+        [DynamicPermissionAuthorize("leave.data")]
+        public async Task<IActionResult> ExportToExcel(string search = "", string leaveType = "", string status = "", DateTime? startDate = null, DateTime? endDate = null)
+        {
+            try
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null) return Challenge();
+
+                var employee = await _context.Employee
+                    .Include(e => e.Branch)
+                    .FirstOrDefaultAsync(e => e.UserId == user.Id);
+                if (employee == null) return NotFound("Employee record not found");
+
+                // Get accessible branches based on user role and permissions
+                var accessibleBranches = await _branchAccessService.GetAccessibleBranchIdsAsync(user.Id);
+
+                // Build the query with same logic as LeaveData action
+                var query = _context.LeaveRequests
+                    .Include(lr => lr.LeaveType)
+                    .Include(lr => lr.Status)
+                    .Include(lr => lr.Employee)
+                    .Where(lr => accessibleBranches.Contains(lr.Employee.BranchId));
+
+                // Apply same filters as LeaveData action
+                if (!string.IsNullOrEmpty(search))
+                {
+                    query = query.Where(lr => 
+                        lr.Employee.FirstName.Contains(search) ||
+                        lr.Employee.LastName.Contains(search) ||
+                        lr.Employee.Email.Contains(search) ||
+                        lr.LeaveType.Name.Contains(search) ||
+                        lr.LeaveReason.Contains(search));
+                }
+
+                if (!string.IsNullOrEmpty(leaveType))
+                {
+                    query = query.Where(lr => lr.LeaveType.Name == leaveType);
+                }
+
+                if (!string.IsNullOrEmpty(status))
+                {
+                    query = query.Where(lr => lr.Status.StatusName == status);
+                }
+
+                if (startDate.HasValue)
+                {
+                    query = query.Where(lr => lr.StartDate >= startDate.Value);
+                }
+
+                if (endDate.HasValue)
+                {
+                    query = query.Where(lr => lr.EndDate <= endDate.Value);
+                }
+
+                // Get filtered results
+                var leaveRequests = await query
+                    .OrderByDescending(lr => lr.SubmissionDate)
+                    .Select(lr => new LeaveDataViewModel
+                    {
+                        Id = lr.LeaveRequestId,
+                        EmployeeName = $"{lr.Employee.FirstName} {lr.Employee.LastName}",
+                        EmployeeEmail = lr.Employee.Email,
+                        LeaveType = lr.LeaveType.Name,
+                        StartDate = lr.StartDate,
+                        EndDate = lr.EndDate,
+                        Duration = (lr.EndDate - lr.StartDate).Days + 1,
+                        Status = lr.Status.StatusName,
+                        Reason = lr.LeaveReason ?? "No reason provided",
+                        SubmittedOn = lr.SubmissionDate,
+                        AttachmentFileName = lr.AttachmentPath,
+                        RejectionReason = lr.RejectedReason
+                    })
+                    .ToListAsync();
+
+                // Create Excel file using ClosedXML (completely free MIT license)
+                using var workbook = new XLWorkbook();
+                var worksheet = workbook.Worksheets.Add("Leave Data");
+
+                // Add headers with styling
+                var headers = new[]
+                {
+                    "Employee Name", "Email", "Leave Type", "Start Date", "End Date",
+                    "Duration (Days)", "Status", "Reason", "Submitted On", "Has Attachment", "Rejection Reason"
+                };
+
+                for (int col = 1; col <= headers.Length; col++)
+                {
+                    var headerCell = worksheet.Cell(1, col);
+                    headerCell.Value = headers[col - 1];
+                    headerCell.Style.Font.Bold = true;
+                    headerCell.Style.Fill.BackgroundColor = XLColor.LightGray;
+                    headerCell.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                }
+
+                // Add data rows
+                for (int i = 0; i < leaveRequests.Count; i++)
+                {
+                    var row = i + 2; // Start from row 2 (after header)
+                    var request = leaveRequests[i];
+
+                    worksheet.Cell(row, 1).Value = request.EmployeeName;
+                    worksheet.Cell(row, 2).Value = request.EmployeeEmail;
+                    worksheet.Cell(row, 3).Value = request.LeaveType;
+                    worksheet.Cell(row, 4).Value = request.StartDate.ToString("yyyy-MM-dd");
+                    worksheet.Cell(row, 5).Value = request.EndDate.ToString("yyyy-MM-dd");
+                    worksheet.Cell(row, 6).Value = request.Duration;
+                    worksheet.Cell(row, 7).Value = request.Status;
+                    worksheet.Cell(row, 8).Value = request.Reason;
+                    worksheet.Cell(row, 9).Value = request.SubmittedOn.ToString("yyyy-MM-dd HH:mm");
+                    worksheet.Cell(row, 10).Value = !string.IsNullOrEmpty(request.AttachmentFileName) ? "Yes" : "No";
+                    worksheet.Cell(row, 11).Value = request.RejectionReason ?? "";
+                }
+
+                // Auto-fit columns for better appearance
+                worksheet.ColumnsUsed().AdjustToContents();
+
+                // Generate file name with timestamp
+                var fileName = $"LeaveData_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                
+                _logger.LogInformation($"Exporting {leaveRequests.Count} leave records to Excel for user {user.Email}");
+
+                // Convert to byte array and return file
+                using var stream = new MemoryStream();
+                workbook.SaveAs(stream);
+                var fileBytes = stream.ToArray();
+                
+                return File(fileBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error in ExportToExcel: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Exports filtered leave data to CSV format
+        /// No additional packages required - uses built-in .NET functionality
+        /// </summary>
+        [DynamicPermissionAuthorize("leave.data")]
+        public async Task<IActionResult> ExportToCsv(string search = "", string leaveType = "", string status = "", DateTime? startDate = null, DateTime? endDate = null)
+        {
+            try
+            {
+                var user = await _userManager.GetUserAsync(User);
+                if (user == null) return Challenge();
+
+                var employee = await _context.Employee
+                    .Include(e => e.Branch)
+                    .FirstOrDefaultAsync(e => e.UserId == user.Id);
+                if (employee == null) return NotFound("Employee record not found");
+
+                // Get accessible branches based on user role and permissions
+                var accessibleBranches = await _branchAccessService.GetAccessibleBranchIdsAsync(user.Id);
+
+                // Build the query with same logic as LeaveData action
+                var query = _context.LeaveRequests
+                    .Include(lr => lr.LeaveType)
+                    .Include(lr => lr.Status)
+                    .Include(lr => lr.Employee)
+                    .Where(lr => accessibleBranches.Contains(lr.Employee.BranchId));
+
+                // Apply same filters as LeaveData action
+                if (!string.IsNullOrEmpty(search))
+                {
+                    query = query.Where(lr => 
+                        lr.Employee.FirstName.Contains(search) ||
+                        lr.Employee.LastName.Contains(search) ||
+                        lr.Employee.Email.Contains(search) ||
+                        lr.LeaveType.Name.Contains(search) ||
+                        lr.LeaveReason.Contains(search));
+                }
+
+                if (!string.IsNullOrEmpty(leaveType))
+                {
+                    query = query.Where(lr => lr.LeaveType.Name == leaveType);
+                }
+
+                if (!string.IsNullOrEmpty(status))
+                {
+                    query = query.Where(lr => lr.Status.StatusName == status);
+                }
+
+                if (startDate.HasValue)
+                {
+                    query = query.Where(lr => lr.StartDate >= startDate.Value);
+                }
+
+                if (endDate.HasValue)
+                {
+                    query = query.Where(lr => lr.EndDate <= endDate.Value);
+                }
+
+                // Get filtered results
+                var leaveRequests = await query
+                    .OrderByDescending(lr => lr.SubmissionDate)
+                    .Select(lr => new LeaveDataViewModel
+                    {
+                        Id = lr.LeaveRequestId,
+                        EmployeeName = $"{lr.Employee.FirstName} {lr.Employee.LastName}",
+                        EmployeeEmail = lr.Employee.Email,
+                        LeaveType = lr.LeaveType.Name,
+                        StartDate = lr.StartDate,
+                        EndDate = lr.EndDate,
+                        Duration = (lr.EndDate - lr.StartDate).Days + 1,
+                        Status = lr.Status.StatusName,
+                        Reason = lr.LeaveReason ?? "No reason provided",
+                        SubmittedOn = lr.SubmissionDate,
+                        AttachmentFileName = lr.AttachmentPath,
+                        RejectionReason = lr.RejectedReason
+                    })
+                    .ToListAsync();
+
+                // Build CSV content
+                var csvBuilder = new StringBuilder();
+                
+                // Add header row
+                csvBuilder.AppendLine("Employee Name,Email,Leave Type,Start Date,End Date,Duration (Days),Status,Reason,Submitted On,Has Attachment,Rejection Reason");
+
+                // Add data rows
+                foreach (var request in leaveRequests)
+                {
+                    // Escape commas and quotes in CSV fields
+                    var employeeName = EscapeCsvField(request.EmployeeName);
+                    var email = EscapeCsvField(request.EmployeeEmail);
+                    var leaveTypeField = EscapeCsvField(request.LeaveType);
+                    var reason = EscapeCsvField(request.Reason);
+                    var hasAttachment = !string.IsNullOrEmpty(request.AttachmentFileName) ? "Yes" : "No";
+                    var rejectionReason = EscapeCsvField(request.RejectionReason ?? "");
+
+                    csvBuilder.AppendLine($"{employeeName},{email},{leaveTypeField},{request.StartDate:yyyy-MM-dd},{request.EndDate:yyyy-MM-dd},{request.Duration},{request.Status},{reason},{request.SubmittedOn:yyyy-MM-dd HH:mm},{hasAttachment},{rejectionReason}");
+                }
+
+                // Generate file name with timestamp
+                var fileName = $"LeaveData_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
+                
+                _logger.LogInformation($"Exporting {leaveRequests.Count} leave records to CSV for user {user.Email}");
+
+                // Return CSV file
+                var fileBytes = Encoding.UTF8.GetBytes(csvBuilder.ToString());
+                return File(fileBytes, "text/csv", fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error in ExportToCsv: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Helper method to escape CSV fields that contain commas, quotes, or newlines
+        /// </summary>
+        private static string EscapeCsvField(string field)
+        {
+            if (string.IsNullOrEmpty(field))
+                return "";
+
+            // If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
+            if (field.Contains(',') || field.Contains('"') || field.Contains('\n') || field.Contains('\r'))
+            {
+                return "\"" + field.Replace("\"", "\"\"") + "\"";
+            }
+
+            return field;
         }
 
         [HttpPost]
