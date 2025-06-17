@@ -1,168 +1,593 @@
 @model UpdateBranchViewModel
 @{
-    ViewBag.Title = "Update Branch";
+    ViewData["Title"] = "Update Branch";
     Layout = "~/Views/Shared/_AuthenticatedLayout.cshtml";
 }
 
-<div id="notificationContainer" class="fixed top-4 right-4 z-50"></div>
+<!-- Notification Container -->
+<div id="notificationContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
-<div class="max-w-3xl mx-auto mt-8">
-    <!-- Header with Branding -->
-    <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center">
-            <h2 class="text-2xl font-bold text-gray-900">Update Branch</h2>
-            <span class="ml-2 bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded-full">HR</span>
+<!-- Hidden inputs for initial state -->
+<input type="hidden" id="initialLocationEnabled" value="@Model.EnableLocation" />
+<input type="hidden" id="initialNetworkEnabled" value="@Model.EnableNetwork" />
+<input type="hidden" id="initialBiometricEnabled" value="@Model.EnableBiometric" />
+
+<div class="min-h-screen bg-gray-50 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header with Breadcrumb -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <nav class="flex mb-4" aria-label="Breadcrumb">
+                        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                            <li class="inline-flex items-center">
+                                <a href="/Home/Index" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-[#a88641]">
+                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+                                    </svg>
+                                    Dashboard
+                                </a>
+                            </li>
+                            <li>
+                                <div class="flex items-center">
+                                    <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <a href="/Account/BranchList" class="ml-1 text-sm font-medium text-gray-700 hover:text-[#a88641] md:ml-2">Branch Management</a>
+                                </div>
+                            </li>
+                            <li aria-current="page">
+                                <div class="flex items-center">
+                                    <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Update Branch</span>
+                                </div>
+                            </li>
+                        </ol>
+                    </nav>
+                    <div class="flex items-center">
+                        <h1 class="text-3xl font-bold text-gray-900">Update Branch</h1>
+                        <span class="ml-3 px-3 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">HR Management</span>
+                    </div>
+                    <p class="mt-2 text-gray-600">Modify branch information and feature configurations</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <a href="/Account/BranchList" 
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
+                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back to List
+                    </a>
+                </div>
+            </div>
         </div>
-        <div class="flex items-center">
-            <img src="/images/logo-black-icon.png" alt="Logo" class="h-7 w-7" />
-            <h1 class="text-lg font-bold text-gray-900 ml-2">Lets<span class="text-[#a88641]">Check</span>In</h1>
+
+        <!-- Main Content -->
+        <div class="bg-white shadow-xl rounded-lg overflow-hidden">
+            <div class="px-4 sm:px-6 py-6 border-b border-gray-200">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 bg-[#a88641] rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h2 class="text-lg font-medium text-gray-900">Branch Configuration</h2>
+                        <p class="text-sm text-gray-500">Update settings and features for this branch location</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-4 sm:px-6 py-6">
+                <form id="updateBranchForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="branchId" name="branchId" value="@Model.BranchId" />
+
+                    <!-- Branch Information Section -->
+                    <div class="mb-8">
+                        <div class="mb-6">
+                            <div class="flex items-center mb-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-lg font-medium text-gray-900">Branch Information</h3>
+                                    <p class="text-sm text-gray-500">Update the basic information for this branch location</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 gap-6">
+                                <div>
+                                    <label for="branchName" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Branch Name <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="text" 
+                                               id="branchName" 
+                                               name="branchName" 
+                                               value="@Model.BranchName" 
+                                               required
+                                               class="block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm"
+                                               placeholder="Enter branch name">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Admin Information Section -->
+                    <div class="mb-8">
+                        <div class="mb-6">
+                            <div class="flex items-center mb-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-lg font-medium text-gray-900">Admin Information</h3>
+                                    <p class="text-sm text-gray-500">Update the administrator details for this branch</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label for="adminName" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Admin Name <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="text" 
+                                               id="adminName" 
+                                               name="adminName" 
+                                               value="@Model.AdminName" 
+                                               required
+                                               class="block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm"
+                                               placeholder="Enter admin name">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label for="adminEmail" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Admin Email <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input type="email" 
+                                               id="adminEmail" 
+                                               name="adminEmail" 
+                                               value="@Model.AdminEmail" 
+                                               required
+                                               class="block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm"
+                                               placeholder="Enter admin email">
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Features Configuration Section -->
+                    <div class="mb-8">
+                        <div class="flex items-center mb-6">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-lg font-medium text-gray-900">Features Configuration</h3>
+                                <p class="text-sm text-gray-500">Enable or disable branch-specific features</p>
+                            </div>
+                        </div>
+
+                        <!-- Important Notice -->
+                        <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-amber-800">
+                                        <strong>Important:</strong> At least Location tracking must be enabled for the branch to function properly.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Location Tracking -->
+                            <div id="locationFeature" class="relative p-6 border-2 border-gray-200 bg-white rounded-lg hover:border-green-300 transition-all duration-200 cursor-pointer">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0">
+                                            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="ml-4">
+                                            <h4 class="text-sm font-medium text-gray-900">Location Tracking</h4>
+                                            <p class="text-xs text-gray-500">GPS-based attendance</p>
+                                        </div>
+                                    </div>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input type="checkbox" 
+                                               id="enableLocation" 
+                                               name="enableLocation" 
+                                               @(Model.EnableLocation ? "checked" : "")
+                                               class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 ease-in-out" />
+                                        <label for="enableLocation" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer transition-all duration-300 ease-in-out"></label>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <p class="text-xs text-gray-600">Required for basic branch functionality. Enables location-based check-ins and ensures employees are at the correct location.</p>
+                                </div>
+                            </div>
+
+                            <!-- Network Verification -->
+                            <div id="networkFeature" class="relative p-6 border-2 border-gray-200 bg-white rounded-lg hover:border-blue-300 transition-all duration-200 cursor-pointer">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0">
+                                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="ml-4">
+                                            <h4 class="text-sm font-medium text-gray-900">Network Verification</h4>
+                                            <p class="text-xs text-gray-500">WiFi-based validation</p>
+                                        </div>
+                                    </div>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input type="checkbox" 
+                                               id="enableNetwork" 
+                                               name="enableNetwork" 
+                                               @(Model.EnableNetwork ? "checked" : "")
+                                               class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 ease-in-out" />
+                                        <label for="enableNetwork" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer transition-all duration-300 ease-in-out"></label>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <p class="text-xs text-gray-600">Additional security layer that verifies employees are connected to the company network during check-in.</p>
+                                </div>
+                            </div>
+
+                            <!-- Biometric Authentication -->
+                            <div id="biometricFeature" class="relative p-6 border-2 border-gray-200 bg-white rounded-lg hover:border-purple-300 transition-all duration-200 cursor-pointer">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0">
+                                            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="ml-4">
+                                            <h4 class="text-sm font-medium text-gray-900">Biometric Authentication</h4>
+                                            <p class="text-xs text-gray-500">Face/fingerprint verification</p>
+                                        </div>
+                                    </div>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input type="checkbox" 
+                                               id="enableBiometric" 
+                                               name="enableBiometric" 
+                                               @(Model.EnableBiometric ? "checked" : "")
+                                               class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 ease-in-out" />
+                                        <label for="enableBiometric" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer transition-all duration-300 ease-in-out"></label>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <p class="text-xs text-gray-600">Highest security level with biometric verification for employee identity confirmation during attendance.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="px-4 sm:px-6 py-6 bg-gray-50 rounded-b-lg">
+                        <div class="flex flex-col sm:flex-row gap-3 sm:justify-end">
+                            <a href="/Account/BranchList" 
+                               class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-600 transition-colors min-h-[44px]">
+                                <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Cancel
+                            </a>
+                            <button type="submit" 
+                                    class="inline-flex items-center justify-center px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[#a88641] hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors min-h-[44px] shadow-sm">
+                                <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                                </svg>
+                                Update Branch
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
-
-    <!-- Form Card -->
-    <div class="bg-white p-6 rounded-lg shadow-md">
-        <form id="updateBranchForm" class="space-y-6">
-            @Html.AntiForgeryToken()
-            <input type="hidden" id="branchId" value="@Model.BranchId" />
-
-            <!-- Branch Information -->
-            <div>
-                <h4 class="text-lg font-medium text-gray-900 mb-4">Branch Information</h4>
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <div>
-                        <label for="branchName" class="block text-sm font-medium text-gray-700 mb-1">Branch Name</label>
-                        <input type="text" id="branchName" value="@Model.BranchName"
-                               class="form-input w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring-[#a88641] sm:text-sm" required />
-                    </div>
-                </div>
-            </div>
-
-            <!-- Admin Information -->
-            <div>
-                <h4 class="text-lg font-medium text-gray-900 mb-4">Admin Information</h4>
-                <div class="bg-gray-50 rounded-lg p-4 space-y-4">
-                    <div>
-                        <label for="adminName" class="block text-sm font-medium text-gray-700">Admin Name</label>
-                        <input type="text" id="adminName" value="@Model.AdminName"
-                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring-[#a88641] sm:text-sm" required />
-                    </div>
-                    <div>
-                        <label for="adminEmail" class="block text-sm font-medium text-gray-700">Admin Email</label>
-                        <input type="email" id="adminEmail" value="@Model.AdminEmail"
-                               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring-[#a88641] sm:text-sm" required />
-                    </div>
-                </div>
-            </div>
-
-            <!-- Features Configuration -->
-            <div>
-                <h4 class="text-lg font-medium text-gray-900 mb-4">Features Configuration</h4>
-                <div class="bg-gray-50 rounded-lg p-4">
-                    <p class="text-sm text-gray-500 mb-3">Enable or disable features for this branch. At least Location must be enabled.</p>
-                    <div class="space-y-3">
-                        <div class="flex items-center">
-                            <input type="checkbox" id="enableLocation" @(Model.EnableLocation ? "checked" : "")
-                                   class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
-                            <label for="enableLocation" class="ml-3 block text-sm text-gray-700">
-                                <span class="font-medium">Location</span>
-                                <span class="text-gray-500 block text-xs">Enable location-based attendance tracking</span>
-                            </label>
-                        </div>
-                        <div class="flex items-center">
-                            <input type="checkbox" id="enableNetwork" @(Model.EnableNetwork ? "checked" : "")
-                                   class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
-                            <label for="enableNetwork" class="ml-3 block text-sm text-gray-700">
-                                <span class="font-medium">Network</span>
-                                <span class="text-gray-500 block text-xs">Restrict attendance to specific network IPs</span>
-                            </label>
-                        </div>
-                        <div class="flex items-center">
-                            <input type="checkbox" id="enableBiometric" @(Model.EnableBiometric ? "checked" : "")
-                                   class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
-                            <label for="enableBiometric" class="ml-3 block text-sm text-gray-700">
-                                <span class="font-medium">Face Recognition</span>
-                                <span class="text-gray-500 block text-xs">Enable facial recognition for attendance</span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex justify-end space-x-3 pt-4">
-                <a href="/Account/BranchList" 
-                   class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641]">
-                    Cancel
-                </a>
-                <button type="submit" 
-                        class="px-4 py-2 text-sm font-medium text-white bg-[#a88641] border border-transparent rounded-md hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641]">
-                    Update Branch
-                </button>
-            </div>
-        </form>
     </div>
 </div>
 
 @section Scripts {
     <script>
-        document.getElementById('updateBranchForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+        // Wait for DOM to be ready before accessing elements
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing update branch functionality...');
             
-            if (!document.getElementById('enableLocation').checked) {
-                showNotification('error', 'At least Location must be enabled.');
+            // Get initial state from hidden inputs with null checks
+            const initialLocationElement = document.getElementById('initialLocationEnabled');
+            const initialNetworkElement = document.getElementById('initialNetworkEnabled');
+            const initialBiometricElement = document.getElementById('initialBiometricEnabled');
+            
+            if (!initialLocationElement || !initialNetworkElement || !initialBiometricElement) {
+                console.error('Could not find initial state elements');
                 return;
             }
+            
+            const initialLocationEnabled = initialLocationElement.value === 'True';
+            const initialNetworkEnabled = initialNetworkElement.value === 'True';
+            const initialBiometricEnabled = initialBiometricElement.value === 'True';
 
-            const data = {
-                branchId: parseInt(document.getElementById('branchId').value),
-                branchName: document.getElementById('branchName').value,
-                adminName: document.getElementById('adminName').value,
-                adminEmail: document.getElementById('adminEmail').value,
-                enableLocation: document.getElementById('enableLocation').checked,
-                enableNetwork: document.getElementById('enableNetwork').checked,
-                enableBiometric: document.getElementById('enableBiometric').checked
-            };
-
-            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-
-            fetch('/Account/UpdateBranch', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': token
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    showNotification('success', result.message);
+            // Enhanced notification system with better styling and animations
+            function showNotification(type, message) {
+                const container = document.getElementById('notificationContainer');
+                if (!container) {
+                    console.error('Notification container not found');
+                    return;
+                }
+                
+                const notification = document.createElement('div');
+                const baseClasses = 'p-4 mb-4 rounded-md shadow-lg transform transition-all duration-300';
+                const typeClasses = type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200';
+                notification.className = baseClasses + ' ' + typeClasses;
+                
+                const successIcon = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>';
+                const errorIcon = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>';
+                const iconPath = type === 'success' ? successIcon : errorIcon;
+                const buttonColor = type === 'success' ? 'green' : 'red';
+                
+                notification.innerHTML = 
+                    '<div class="flex items-center">' +
+                        '<svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">' +
+                            iconPath +
+                        '</svg>' +
+                        '<span class="text-sm font-medium">' + message + '</span>' +
+                        '<button onclick="this.parentElement.parentElement.remove()" class="ml-auto text-' + buttonColor + '-600 hover:text-' + buttonColor + '-800">' +
+                            '<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">' +
+                                '<path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>' +
+                            '</svg>' +
+                        '</button>' +
+                    '</div>';
+                
+                container.appendChild(notification);
+                
+                // Auto-remove after 5 seconds with smooth animation
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    notification.style.transform = 'translateX(100%)';
                     setTimeout(() => {
-                        window.location.href = '/Account/BranchList';
-                    }, 1500);
-                } else {
-                    showNotification('error', result.message);
-                    if (result.errors) {
-                        console.log('Validation errors:', result.errors);
+                        if (notification.parentNode) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }, 5000);
+            }
+
+            // Initialize feature styling based on current state
+            function initializeFeatureStyling() {
+                // Location feature
+                if (initialLocationEnabled) {
+                    const locationContainer = document.getElementById('locationFeature');
+                    if (locationContainer) {
+                        locationContainer.classList.remove('border-gray-200', 'bg-white');
+                        locationContainer.classList.add('border-green-200', 'bg-green-50');
                     }
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showNotification('error', 'An error occurred while updating the branch');
-            });
-        });
+                
+                // Network feature
+                if (initialNetworkEnabled) {
+                    const networkContainer = document.getElementById('networkFeature');
+                    if (networkContainer) {
+                        networkContainer.classList.remove('border-gray-200', 'bg-white');
+                        networkContainer.classList.add('border-green-200', 'bg-green-50');
+                    }
+                }
+                
+                // Biometric feature
+                if (initialBiometricEnabled) {
+                    const biometricContainer = document.getElementById('biometricFeature');
+                    if (biometricContainer) {
+                        biometricContainer.classList.remove('border-gray-200', 'bg-white');
+                        biometricContainer.classList.add('border-green-200', 'bg-green-50');
+                    }
+                }
+            }
 
-        function showNotification(type, message) {
-            const container = document.getElementById('notificationContainer');
-            const notification = document.createElement('div');
-            notification.className = `p-4 mb-4 rounded-md ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
-            notification.innerHTML = message;
+            // Enhanced form submission with better UX
+            const updateBranchForm = document.getElementById('updateBranchForm');
+            if (!updateBranchForm) {
+                console.error('Update branch form not found');
+                return;
+            }
             
-            container.appendChild(notification);
+            updateBranchForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                // Get all required elements with null checks
+                const branchIdEl = document.getElementById('branchId');
+                const branchNameEl = document.getElementById('branchName');
+                const adminNameEl = document.getElementById('adminName');
+                const adminEmailEl = document.getElementById('adminEmail');
+                const enableLocationEl = document.getElementById('enableLocation');
+                const enableNetworkEl = document.getElementById('enableNetwork');
+                const enableBiometricEl = document.getElementById('enableBiometric');
+                
+                if (!branchIdEl || !branchNameEl || !adminNameEl || !adminEmailEl || 
+                    !enableLocationEl || !enableNetworkEl || !enableBiometricEl) {
+                    console.error('Some form elements are missing');
+                    showNotification('error', 'Form elements are missing. Please refresh the page.');
+                    return;
+                }
+                
+                // Validate location requirement
+                if (!enableLocationEl.checked) {
+                    showNotification('error', 'Location tracking must be enabled for the branch to function properly.');
+                    return;
+                }
+
+                // Show loading state
+                const submitBtn = e.target.querySelector('button[type="submit"]');
+                const originalBtnContent = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Updating...';
+                submitBtn.disabled = true;
+
+                // Create JSON data object instead of FormData
+                const requestData = {
+                    branchId: parseInt(branchIdEl.value),
+                    branchName: branchNameEl.value.trim(),
+                    adminName: adminNameEl.value.trim(),
+                    adminEmail: adminEmailEl.value.trim(),
+                    enableLocation: enableLocationEl.checked,
+                    enableNetwork: enableNetworkEl.checked,
+                    enableBiometric: enableBiometricEl.checked
+                };
+
+                // Debug logging to see what we're sending
+                console.log('Sending request data:', requestData);
+
+                fetch('/Account/UpdateBranch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                })
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    console.log('Response headers:', response.headers);
+                    return response.json();
+                })
+                .then(result => {
+                    console.log('Server response:', result);
+                    if (result.success) {
+                        showNotification('success', result.message);
+                        setTimeout(() => {
+                            window.location.href = '/Account/BranchList';
+                        }, 1500);
+                    } else {
+                        showNotification('error', result.message);
+                        if (result.errors) {
+                            console.log('Validation errors:', result.errors);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showNotification('error', 'An error occurred while updating the branch. Please try again.');
+                })
+                .finally(() => {
+                    // Restore button state
+                    submitBtn.innerHTML = originalBtnContent;
+                    submitBtn.disabled = false;
+                });
+            });
+
+            // Add visual feedback for feature toggles
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const container = this.closest('.relative');
+                    if (container) {
+                        if (this.checked) {
+                            container.classList.remove('border-gray-200', 'bg-white');
+                            container.classList.add('border-green-200', 'bg-green-50');
+                        } else {
+                            container.classList.remove('border-green-200', 'bg-green-50');
+                            container.classList.add('border-gray-200', 'bg-white');
+                        }
+                    }
+                });
+            });
+
+            // Form validation enhancements
+            const branchNameField = document.getElementById('branchName');
+            const adminEmailField = document.getElementById('adminEmail');
             
-            setTimeout(() => {
-                notification.remove();
-            }, 5000);
-        }
+            if (branchNameField) {
+                branchNameField.addEventListener('blur', function() {
+                    if (this.value.trim().length < 2) {
+                        this.classList.add('border-red-300');
+                        this.classList.remove('border-gray-300');
+                    } else {
+                        this.classList.remove('border-red-300');
+                        this.classList.add('border-gray-300');
+                    }
+                });
+            }
+
+            if (adminEmailField) {
+                adminEmailField.addEventListener('blur', function() {
+                    // Simple email validation without special symbols to avoid Razor parsing issues
+                    var email = this.value.trim();
+                    var atSymbol = String.fromCharCode(64);
+                    var isValid = email.indexOf(atSymbol) > 0 && email.indexOf('.') > 0 && email.length > 5;
+                    if (!isValid) {
+                        this.classList.add('border-red-300');
+                        this.classList.remove('border-gray-300');
+                    } else {
+                        this.classList.remove('border-red-300');
+                        this.classList.add('border-gray-300');
+                    }
+                });
+            }
+
+            // Initialize styling when page loads
+            initializeFeatureStyling();
+            
+            console.log('Update branch functionality initialized successfully');
+        });
     </script>
-} 
+
+    <style>
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #a88641;
+            background-color: #a88641;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #a88641;
+        }
+    </style>
+}
