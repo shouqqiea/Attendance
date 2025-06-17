@@ -51,21 +51,9 @@ namespace LetsCheckIn.Controllers
                     .ToListAsync();
                 ViewBag.Branches = branches;
 
-                // ✅ Get available roles from Dynamic roles only
-                var availableRoles = new HashSet<string>();
-
-                // Get dynamic roles for accessible branches
-                foreach (var branchId in accessibleBranchIds)
-                {
-                    var branchRoles = await _permissionService.GetRolesForBranchAsync(branchId);
-                    foreach (var role in branchRoles)
-                    {
-                        availableRoles.Add(role.RoleName);
-                    }
-                }
-
-                _logger.LogInformation($"Retrieved {availableRoles.Count} total roles for user {currentUser.Id}");
-                ViewBag.Roles = availableRoles.OrderBy(r => r).ToList();
+                // ✅ Roles will be loaded dynamically based on selected branch
+                // No need to pre-populate ViewBag.Roles as it causes confusion with unassigned roles
+                ViewBag.Roles = new List<string>(); // Empty list for backward compatibility
 
                 // ✅ Get users with their Dynamic roles and employee info
                 var users = await _context.Users
@@ -134,17 +122,9 @@ namespace LetsCheckIn.Controllers
                     .Where(b => accessibleBranchIds.Contains(b.BranchId))
                     .ToListAsync();
 
-                // Get all available roles from accessible branches
-                var availableRoles = new HashSet<string>();
-                foreach (var branchId in accessibleBranchIds)
-                {
-                    var branchRoles = await _permissionService.GetRolesForBranchAsync(branchId);
-                    foreach (var role in branchRoles)
-                    {
-                        availableRoles.Add(role.RoleName);
-                    }
-                }
-                ViewBag.Roles = availableRoles.OrderBy(r => r).ToList();
+                // ✅ Roles will be loaded dynamically based on selected branch
+                // No need to pre-populate ViewBag.Roles as it causes confusion with unassigned roles
+                ViewBag.Roles = new List<string>(); // Empty list for backward compatibility
 
                 return View(new UserManagementViewModel());
             }
@@ -706,13 +686,15 @@ namespace LetsCheckIn.Controllers
                     return Json(new { success = false, message = "You don't have permission to access this branch" });
                 }
 
-                // ✅ Get only dynamic roles for the branch
+                // ✅ Get only active dynamic roles that are assigned to the specific branch
                 var branchRoles = await _permissionService.GetRolesForBranchAsync(branchId);
-                var dynamicRoleNames = branchRoles.Select(r => r.RoleName);
+                
+                var roles = branchRoles
+                    .Select(r => new { value = r.RoleName, text = r.RoleName })
+                    .OrderBy(r => r.text)
+                    .ToList();
 
-                var roles = dynamicRoleNames.Select(r => new { value = r, text = r }).OrderBy(r => r.text).ToList();
-
-                _logger.LogInformation($"Retrieved {roles.Count} roles for branch {branchId}");
+                _logger.LogInformation($"Retrieved {roles.Count} active roles for branch {branchId}: [{string.Join(", ", roles.Select(r => r.text))}]");
                 
                 return Json(new { success = true, roles = roles }, new JsonSerializerOptions
                 {
@@ -721,7 +703,7 @@ namespace LetsCheckIn.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error getting roles for branch: {ex.Message}");
+                _logger.LogError($"Error getting roles for branch {branchId}: {ex.Message}");
                 return Json(new { success = false, message = "An error occurred while getting roles for the branch" });
             }
         }

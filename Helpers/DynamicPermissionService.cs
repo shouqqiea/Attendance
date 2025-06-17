@@ -148,9 +148,9 @@ namespace LetsCheckIn.Helpers
         public async Task<List<Role>> GetRolesForBranchAsync(int branchId)
         {
             return await _context.BranchRoles
-                .Where(br => br.BranchId == branchId)
+                .Where(br => br.BranchId == branchId && br.IsActive) // ✅ Only active branch role assignments
                 .Include(br => br.Role)
-                .Where(br => br.Role.IsActive)
+                .Where(br => br.Role.IsActive && br.Role.DeletedDate == null) // ✅ Only active roles that aren't deleted
                 .Select(br => br.Role)
                 .ToListAsync();
         }
@@ -629,13 +629,23 @@ namespace LetsCheckIn.Helpers
                     }
                 }
 
-                // Assign system roles to all branches (except SuperAdmin which doesn't need branch assignment)
-                if (isSystem && name != "SuperAdmin")
+                // ✅ Only assign system roles to Main Branch on first creation (not on every restart)
+                // This prevents automatic assignment of system roles to all branches on every app restart
+                if (isSystem && name != "SuperAdmin" && existingRole == null)
                 {
-                    var allBranches = await _context.Branch.Where(b => b.DeletedDate == null).ToListAsync();
-                    foreach (var branch in allBranches)
+                    // Only assign to Main Branch initially - let admins manually assign to other branches
+                    var mainBranch = await _context.Branch
+                        .FirstOrDefaultAsync(b => b.BranchName == "Main Branch" && b.DeletedDate == null);
+                    
+                    if (mainBranch != null)
                     {
-                        await AssignRoleToBranchAsync(role.RoleId, branch.BranchId, "System");
+                        var existingAssignment = await _context.BranchRoles
+                            .FirstOrDefaultAsync(br => br.RoleId == role.RoleId && br.BranchId == mainBranch.BranchId);
+                        
+                        if (existingAssignment == null)
+                        {
+                            await AssignRoleToBranchAsync(role.RoleId, mainBranch.BranchId, "System");
+                        }
                     }
                 }
             }

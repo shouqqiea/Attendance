@@ -238,17 +238,9 @@ public class AccountController : Controller
 
         ViewBag.Branches = branches;
         
-        // Get all available roles from accessible branches
-        var availableRoles = new HashSet<string>();
-        foreach (var branchId in accessibleBranchIds)
-        {
-            var branchRoles = await _permissionService.GetRolesForBranchAsync(branchId);
-            foreach (var role in branchRoles)
-            {
-                availableRoles.Add(role.RoleName);
-            }
-        }
-        ViewBag.Roles = availableRoles.OrderBy(r => r).ToList();
+        // ✅ Roles will be loaded dynamically based on selected branch
+        // No need to pre-populate ViewBag.Roles as it causes confusion with unassigned roles
+        ViewBag.Roles = new List<string>(); // Empty list for backward compatibility
         
         return View();
     }
@@ -273,17 +265,8 @@ public class AccountController : Controller
                 .Where(b => accessibleBranchIds.Contains(b.BranchId))
                 .ToListAsync();
             
-            // Get all available roles from accessible branches
-            var availableRoles = new HashSet<string>();
-            foreach (var branchId in accessibleBranchIds)
-            {
-                var branchRoles = await _permissionService.GetRolesForBranchAsync(branchId);
-                foreach (var role in branchRoles)
-                {
-                    availableRoles.Add(role.RoleName);
-                }
-            }
-            ViewBag.Roles = availableRoles.OrderBy(r => r).ToList();
+            // ✅ Roles will be loaded dynamically via JavaScript based on selected branch
+            ViewBag.Roles = new List<string>(); // Empty list for backward compatibility
             
             return View(model);
         }
@@ -297,16 +280,8 @@ public class AccountController : Controller
                 .Where(b => accessibleBranchIds.Contains(b.BranchId))
                 .ToListAsync();
             
-            var availableRoles = new HashSet<string>();
-            foreach (var branchId in accessibleBranchIds)
-            {
-                var branchRoles = await _permissionService.GetRolesForBranchAsync(branchId);
-                foreach (var role in branchRoles)
-                {
-                    availableRoles.Add(role.RoleName);
-                }
-            }
-            ViewBag.Roles = availableRoles.OrderBy(r => r).ToList();
+            // ✅ Roles will be loaded dynamically via JavaScript based on selected branch
+            ViewBag.Roles = new List<string>(); // Empty list for backward compatibility
             
             return View(model);
         }
@@ -321,16 +296,8 @@ public class AccountController : Controller
                 .Where(b => accessibleBranchIds.Contains(b.BranchId))
                 .ToListAsync();
             
-            var availableRoles = new HashSet<string>();
-            foreach (var branchId in accessibleBranchIds)
-            {
-                var branchRoles = await _permissionService.GetRolesForBranchAsync(branchId);
-                foreach (var role in branchRoles)
-                {
-                    availableRoles.Add(role.RoleName);
-                }
-            }
-            ViewBag.Roles = availableRoles.OrderBy(r => r).ToList();
+            // ✅ Roles will be loaded dynamically via JavaScript based on selected branch
+            ViewBag.Roles = new List<string>(); // Empty list for backward compatibility
             
             return View(model);
         }
@@ -343,16 +310,8 @@ public class AccountController : Controller
                 .Where(b => accessibleBranchIds.Contains(b.BranchId))
                 .ToListAsync();
             
-            var availableRoles = new HashSet<string>();
-            foreach (var branchId in accessibleBranchIds)
-            {
-                var branchRoles = await _permissionService.GetRolesForBranchAsync(branchId);
-                foreach (var role in branchRoles)
-                {
-                    availableRoles.Add(role.RoleName);
-                }
-            }
-            ViewBag.Roles = availableRoles.OrderBy(r => r).ToList();
+            // ✅ Roles will be loaded dynamically via JavaScript based on selected branch
+            ViewBag.Roles = new List<string>(); // Empty list for backward compatibility
             
             return View(model);
         }
@@ -373,16 +332,8 @@ public class AccountController : Controller
                 .Where(b => accessibleBranchIds.Contains(b.BranchId))
                 .ToListAsync();
             
-            var availableRoles = new HashSet<string>();
-            foreach (var branchId in accessibleBranchIds)
-            {
-                var branchRoles = await _permissionService.GetRolesForBranchAsync(branchId);
-                foreach (var role in branchRoles)
-                {
-                    availableRoles.Add(role.RoleName);
-                }
-            }
-            ViewBag.Roles = availableRoles.OrderBy(r => r).ToList();
+            // ✅ Roles will be loaded dynamically via JavaScript based on selected branch
+            ViewBag.Roles = new List<string>(); // Empty list for backward compatibility
             
             return View(model);
         }

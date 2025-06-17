@@ -2,7 +2,7 @@
 @{
     ViewBag.Title = "User Management";
     var branches = ViewBag.Branches as List<LetsCheckIn.Models.db.Branch>;
-    var roles = ViewBag.Roles as List<string>;
+    var roles = ViewBag.Roles as List<string>; // ✅ Now empty - roles loaded dynamically by branch
 }
 
 <!-- Add Select2 CSS -->
@@ -214,10 +214,8 @@
                 <label for="role" class="block text-sm font-medium text-gray-700">Roles</label>
                 <select id="role" name="roles" multiple required
                         class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm">
-                    @foreach (var role in roles)
-                    {
-                        <option value="@role">@role</option>
-                    }
+                    <!-- Roles will be populated dynamically based on selected branch -->
+                    <option value="" disabled>Select a branch first</option>
                 </select>
             </div>
             <div class="flex items-center">
@@ -387,8 +385,13 @@
             const roleSelect = document.getElementById('role');
             const selectedBranchId = branchSelect.value;
 
-            // Clear role options
-            roleSelect.innerHTML = '<option value="">Select Role</option>';
+            // Clear role options and show loading state
+            roleSelect.innerHTML = '<option value="" disabled>Loading roles...</option>';
+            
+            // Reset Select2 if initialized
+            if (typeof jQuery !== 'undefined' && $('#role').hasClass('select2-hidden-accessible')) {
+                $('#role').val(null).trigger('change');
+            }
 
             if (selectedBranchId) {
                 try {
@@ -408,12 +411,22 @@
                         });
                     } else {
                         console.error('Invalid roles data in modal:', data);
+                        roleSelect.innerHTML = '<option value="" disabled>Failed to load roles</option>';
                         showNotification('error', 'Failed to load roles: Invalid data format');
                     }
                 } catch (error) {
                     console.error('Error loading roles for branch in modal:', error);
+                    roleSelect.innerHTML = '<option value="" disabled>Error loading roles</option>';
                     showNotification('error', 'Error loading roles for branch');
                 }
+            } else {
+                // No branch selected, show placeholder
+                roleSelect.innerHTML = '<option value="" disabled>Select a branch first</option>';
+            }
+            
+            // Refresh Select2 if available
+            if (typeof jQuery !== 'undefined' && $('#role').hasClass('select2-hidden-accessible')) {
+                $('#role').trigger('change');
             }
         }
 
@@ -486,9 +499,14 @@
                 document.getElementById('username').value = e.target.value;
             });
             
-            // Clear role dropdown when creating new user
+            // Clear role dropdown when creating new user and reset Select2
             const roleSelect = document.getElementById('role');
-            roleSelect.innerHTML = '<option value="">Select Role</option>';
+            roleSelect.innerHTML = '<option value="" disabled>Select a branch first</option>';
+            
+            // Reset Select2 if initialized
+            if (typeof jQuery !== 'undefined' && $('#role').hasClass('select2-hidden-accessible')) {
+                $('#role').val(null).trigger('change');
+            }
             
             document.getElementById('userModal').classList.remove('hidden');
             document.getElementById('userModal').classList.add('flex');
@@ -539,7 +557,9 @@
 
         async function loadRolesForBranch(branchId, selectedRoles = []) {
             const roleSelect = document.getElementById('role');
-            roleSelect.innerHTML = '';
+            
+            // Show loading state
+            roleSelect.innerHTML = '<option value="" disabled>Loading roles...</option>';
 
             if (branchId) {
                 try {
@@ -550,29 +570,42 @@
                     const data = await response.json();
                     console.log('Edit Modal Roles Response:', data);
 
+                    // Clear the loading option
+                    roleSelect.innerHTML = '';
+
                     if (data.success && data.roles && Array.isArray(data.roles)) {
-                        data.roles.forEach(role => {
-                            const option = document.createElement('option');
-                            option.value = role.value;
-                            option.textContent = role.text;
-                            if (selectedRoles && selectedRoles.includes(role.value)) {
-                                option.selected = true;
-                            }
-                            roleSelect.appendChild(option);
-                        });
+                        if (data.roles.length === 0) {
+                            // No roles available for this branch
+                            roleSelect.innerHTML = '<option value="" disabled>No roles available for this branch</option>';
+                        } else {
+                            data.roles.forEach(role => {
+                                const option = document.createElement('option');
+                                option.value = role.value;
+                                option.textContent = role.text;
+                                if (selectedRoles && selectedRoles.includes(role.value)) {
+                                    option.selected = true;
+                                }
+                                roleSelect.appendChild(option);
+                            });
+                        }
                         
                         // Refresh Select2 if available
-                        if (typeof jQuery !== 'undefined') {
+                        if (typeof jQuery !== 'undefined' && $('#role').hasClass('select2-hidden-accessible')) {
                             $('#role').trigger('change');
                         }
                     } else {
                         console.error('Invalid roles data in edit modal:', data);
+                        roleSelect.innerHTML = '<option value="" disabled>Failed to load roles</option>';
                         showNotification('error', 'Failed to load roles: Invalid data format');
                     }
                 } catch (error) {
                     console.error('Error loading roles for branch in edit modal:', error);
+                    roleSelect.innerHTML = '<option value="" disabled>Error loading roles</option>';
                     showNotification('error', 'Error loading roles for branch');
                 }
+            } else {
+                // No branch provided
+                roleSelect.innerHTML = '<option value="" disabled>Select a branch first</option>';
             }
         }
 
