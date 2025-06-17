@@ -8,7 +8,8 @@ using Microsoft.AspNetCore.Identity;
 
 namespace LetsCheckIn.Models
 {
-    public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityRole, string>
+    // ✅ Updated to not use IdentityRole - relying on Dynamic roles only
+    public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)

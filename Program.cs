@@ -21,16 +21,16 @@ builder.Host.UseSerilog();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
  options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options => {
-    options.ClaimsIdentity.RoleClaimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role";
+// ✅ Use Identity without roles - relying on Dynamic role system only
+builder.Services.AddDefaultIdentity<ApplicationUser>(options => {
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
     options.Password.RequireUppercase = true;
     options.Password.RequireNonAlphanumeric = true;
     options.Password.RequiredLength = 8;
+    options.SignIn.RequireConfirmedAccount = false;
 })
-  .AddEntityFrameworkStores<ApplicationDbContext>()
-  .AddDefaultTokenProviders();
+  .AddEntityFrameworkStores<ApplicationDbContext>();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -60,7 +60,7 @@ builder.Services.AddAntiforgery(options =>
 // Register BranchAccessService
 builder.Services.AddScoped<IBranchAccessService, BranchAccessService>();
 
-// Register DynamicPermissionService
+// Register DynamicPermissionService - use the Helpers version which implements the correct interface
 builder.Services.AddScoped<LetsCheckIn.Helpers.IDynamicPermissionService, LetsCheckIn.Helpers.DynamicPermissionService>();
 
 var app = builder.Build();

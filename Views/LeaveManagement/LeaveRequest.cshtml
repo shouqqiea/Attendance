@@ -4,221 +4,586 @@
     var leaveTypes = ViewBag.LeaveTypes as List<LetsCheckIn.Controllers.LeaveTypeViewModel>;
     var leaveRequests = ViewBag.LeaveRequests as List<LetsCheckIn.Controllers.LeaveRequestViewModel>;
     var leaveBalances = ViewBag.LeaveBalances as List<LetsCheckIn.Controllers.LeaveBalanceViewModel>;
+    Layout = "~/Views/Shared/_AuthenticatedLayout.cshtml";
 }
 
-<div class="container mx-auto px-4 py-8">
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-<!-- Leave Request Form -->
-        <div class="lg:col-span-1">
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h2 class="text-2xl font-semibold mb-6 text-gray-800">Submit Leave Request</h2>
-                <form id="leaveRequestForm" class="space-y-4">
-                    @Html.AntiForgeryToken()
+<div class="min-h-screen bg-gray-50">
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="fixed top-4 right-4 z-50 w-full max-w-xs"></div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <!-- Header Section -->
+        <div class="mb-6 sm:mb-8">
+            <div class="text-center md:text-left">
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Leave Management</h1>
+                <p class="text-sm sm:text-base text-gray-600">Submit and manage your leave requests</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+            <!-- Leave Request Form -->
+            <div class="lg:col-span-1 order-1 lg:order-1">
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                    <!-- Form Header -->
+                    <div class="px-6 py-5 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 bg-[#a88641] rounded-xl flex items-center justify-center mr-3 shadow-md">
+                                <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-bold text-gray-900">Submit Leave Request</h2>
+                                <p class="text-sm text-gray-600 mt-1">Fill in the details below to submit your leave request</p>
+                            </div>
+                        </div>
+                    </div>
                     
-            <div>
-                        <label class="block text-sm font-medium text-gray-700">Leave Type</label>
-                        <select name="LeaveType" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring focus:ring-[#a88641] focus:ring-opacity-50">
-                    <option value="">Select Leave Type</option>
-                            @foreach (var type in leaveTypes)
-                            {
-                                <option value="@type.LeaveTypeId">@type.Name</option>
-                            }
-                </select>
-                        <div class="leave-type-error text-red-600 text-sm mt-1 hidden"></div>
-            </div>
+                    <!-- Form Content -->
+                    <div class="p-6">
+                        <form id="leaveRequestForm" class="space-y-6">
+                            @Html.AntiForgeryToken()
+                            
+                            <!-- Leave Type Field -->
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-700">
+                                    <span class="flex items-center">
+                                        <svg class="h-4 w-4 mr-2 text-[#a88641]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a1.994 1.994 0 01-1.414.586H7a4 4 0 01-4-4V7a4 4 0 014-4z"/>
+                                        </svg>
+                                        Leave Type
+                                    </span>
+                                </label>
+                                <div class="relative">
+                                    <select name="LeaveType" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#a88641] focus:border-[#a88641] focus:bg-white transition-all duration-200 appearance-none text-gray-900">
+                                        <option value="">Select Leave Type</option>
+                                        @foreach (var type in leaveTypes)
+                                        {
+                                            <option value="@type.LeaveTypeId">@type.Name</option>
+                                        }
+                                    </select>
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="leave-type-error text-red-500 text-sm hidden"></div>
+                            </div>
 
-            <div>
-                        <label class="block text-sm font-medium text-gray-700">Emergency Request?</label>
-                        <select name="Emergency" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring focus:ring-[#a88641] focus:ring-opacity-50">
-                            <option value="no">No</option>
-                            <option value="yes">Yes</option>
-                        </select>
-                        <div class="emergency-error text-red-600 text-sm mt-1 hidden"></div>
-                </div>
+                            <!-- Emergency Request Field -->
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-700">
+                                    <span class="flex items-center">
+                                        <svg class="h-4 w-4 mr-2 text-[#a88641]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                        </svg>
+                                        Emergency Request?
+                                    </span>
+                                </label>
+                                <div class="relative">
+                                    <select name="Emergency" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#a88641] focus:border-[#a88641] focus:bg-white transition-all duration-200 appearance-none text-gray-900">
+                                        <option value="no">No</option>
+                                        <option value="yes">Yes</option>
+                                    </select>
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                        <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="emergency-error text-red-500 text-sm hidden"></div>
+                            </div>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Start Date</label>
-                        <input type="date" name="StartDate" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring focus:ring-[#a88641] focus:ring-opacity-50">
-                        <div class="start-date-error text-red-600 text-sm mt-1 hidden"></div>
-        </div>
+                            <!-- Date Range Fields -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-700">
+                                        <span class="flex items-center">
+                                            <svg class="h-4 w-4 mr-2 text-[#a88641]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                            Start Date
+                                        </span>
+                                    </label>
+                                    <input type="date" name="StartDate" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#a88641] focus:border-[#a88641] focus:bg-white transition-all duration-200 text-gray-900">
+                                    <div class="start-date-error text-red-500 text-sm hidden"></div>
+                                </div>
 
-            <div>
-                        <label class="block text-sm font-medium text-gray-700">End Date</label>
-                        <input type="date" name="EndDate" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring focus:ring-[#a88641] focus:ring-opacity-50">
-                        <div class="end-date-error text-red-600 text-sm mt-1 hidden"></div>
-            </div>
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-semibold text-gray-700">
+                                        <span class="flex items-center">
+                                            <svg class="h-4 w-4 mr-2 text-[#a88641]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                            </svg>
+                                            End Date
+                                        </span>
+                                    </label>
+                                    <input type="date" name="EndDate" required class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#a88641] focus:border-[#a88641] focus:bg-white transition-all duration-200 text-gray-900">
+                                    <div class="end-date-error text-red-500 text-sm hidden"></div>
+                                </div>
+                            </div>
 
-            <div>
-                        <label class="block text-sm font-medium text-gray-700">Reason</label>
-                        <textarea name="Reason" required rows="3" maxlength="500" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring focus:ring-[#a88641] focus:ring-opacity-50"></textarea>
-                        <div class="reason-error text-red-600 text-sm mt-1 hidden"></div>
-                        <div class="text-sm text-gray-500 mt-1">
-                            <span class="char-count">0</span>/500 characters
-            </div>
-        </div>
+                            <!-- Duration Display -->
+                            <div id="durationDisplay" class="hidden bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                <div class="flex items-center text-blue-700">
+                                    <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                    </svg>
+                                    <span class="font-medium" id="durationText">Duration will be calculated</span>
+                                </div>
+                            </div>
 
-        <div>
-                        <label class="block text-sm font-medium text-gray-700">Attachment (optional)</label>
-                        <input type="file" name="attachment" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-[#a88641] file:text-white hover:file:bg-[#97763a]">
-                        <div class="text-xs text-gray-500 mt-1">Accepted formats: PDF, DOC, DOCX, JPG, JPEG, PNG</div>
-        </div>
+                            <!-- Reason Field -->
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-700">
+                                    <span class="flex items-center">
+                                        <svg class="h-4 w-4 mr-2 text-[#a88641]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                        </svg>
+                                        Reason for Leave
+                                    </span>
+                                </label>
+                                <textarea name="Reason" required rows="4" maxlength="500" 
+                                          class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-[#a88641] focus:border-[#a88641] focus:bg-white transition-all duration-200 resize-none text-gray-900"
+                                          placeholder="Please provide a detailed reason for your leave request..."></textarea>
+                                <div class="flex justify-between items-center text-xs text-gray-500">
+                                    <span class="flex items-center">
+                                        <svg class="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        Be specific and clear about your leave reason
+                                    </span>
+                                    <span class="font-medium">
+                                        <span class="char-count">0</span>/500
+                                    </span>
+                                </div>
+                                <div class="reason-error text-red-500 text-sm hidden"></div>
+                            </div>
 
-                    <div id="formError" class="hidden bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md"></div>
-
-                    <button type="submit" class="w-full bg-[#a88641] text-white py-2 px-4 rounded-md hover:bg-[#97763a] focus:outline-none focus:ring-2 focus:ring-[#a88641] focus:ring-opacity-50 transition-colors flex items-center justify-center">
-                        <span class="submit-text">Submit Request</span>
-                        <svg class="hidden animate-spin ml-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    </button>
-                </form>
-            </div>
-        </div>
-
-        <!-- Leave Balances and History -->
-        <div class="lg:col-span-2">
-            <!-- Leave Balances -->
-            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-                <h2 class="text-2xl font-semibold mb-6 text-gray-800">Leave Balances</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    @foreach (var balance in leaveBalances)
-                    {
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <h3 class="font-medium text-gray-900">@balance.Type</h3>
-                            <div class="mt-2 space-y-1">
-                                <p class="text-sm text-gray-600">Total: @balance.Total days</p>
-                                <p class="text-sm text-gray-600">Used: @balance.Used days</p>
-                                <p class="text-sm font-medium text-gray-900">Remaining: @balance.Remaining days</p>
-                </div>
-            </div>
-                    }
-                </div>
-            </div>
-
-            <!-- Leave History -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <!-- Pending Requests Section -->
-                <div class="mb-8">
-                    <h2 class="text-2xl font-semibold text-gray-800 mb-4">Pending Requests</h2>
-                    <div id="pendingRequestsContainer" class="space-y-4">
-                        @if (leaveRequests.Any(r => r.Status.ToLower() is "pending" or "emergency"))
-                        {
-                            @foreach (var request in leaveRequests.Where(r => r.Status.ToLower() is "pending" or "emergency"))
-                            {
-                                <div class="leave-request bg-white rounded-lg p-4 border-l-4 shadow-sm hover:shadow-md transition-all duration-200 ease-in-out @(request.Status.ToLower() switch {
-                                    "emergency" => "border-orange-500",
-                                    _ => "border-yellow-500"
-                                })"
-                                     data-date="@string.Format("{0:yyyy-MM-dd}", request.StartDate)"
-                                     data-status="@request.Status.ToLower()">
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <h3 class="font-medium text-gray-900 mb-1">@request.LeaveType</h3>
-                                            <p class="text-sm text-gray-600 mb-2">@string.Format("{0:MMM d, yyyy}", request.StartDate) - @string.Format("{0:MMM d, yyyy}", request.EndDate)</p>
-                                            <p class="text-sm text-gray-500">Duration: @(request.EndDate.HasValue && request.StartDate.HasValue ? (request.EndDate.Value - request.StartDate.Value).Days + 1 : 0) days</p>
-                                            <p class="text-sm text-gray-700 bg-gray-50 p-2 rounded-md">@request.Reason</p>
-                                            <p class="text-sm text-gray-500 mt-2">Submitted on: @string.Format("{0:MMM d, yyyy}", request.SubmittedOn)</p>
-                                            @if (!string.IsNullOrEmpty(request.AttachmentFileName))
-                                            {
-                                                <a href="@Url.Action("DownloadAttachment", new { id = request.Id })" 
-                                                   class="text-sm text-[#a88641] hover:text-[#97763a] mt-2 inline-flex items-center group">
-                                                    <svg class="h-4 w-4 mr-1 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                                    </svg>
-                                                    Download Attachment
-                                                </a>
-                                            }
-            </div>
-                                        <div class="flex items-center space-x-2">
-                                            <span class="px-3 py-1 text-sm font-medium rounded-full shadow-sm @(request.Status.ToLower() switch {
-                                                "emergency" => "bg-orange-100 text-orange-800 ring-1 ring-orange-600/20",
-                                                _ => "bg-yellow-100 text-yellow-800 ring-1 ring-yellow-600/20"
-                                            })">
-                                                @request.Status
-                                            </span>
-                                            <button onclick="cancelLeaveRequest(@request.Id)" 
-                                                    class="text-red-600 hover:text-red-800 focus:outline-none p-1 hover:bg-red-50 rounded-full transition-colors">
-                                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            <!-- Attachment Field -->
+                            <div class="space-y-2">
+                                <label class="block text-sm font-semibold text-gray-700">
+                                    <span class="flex items-center">
+                                        <svg class="h-4 w-4 mr-2 text-[#a88641]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                                        </svg>
+                                        Supporting Document <span class="text-gray-400 font-normal">(optional)</span>
+                                    </span>
+                                </label>
+                                <div class="relative">
+                                    <div class="bg-gray-50 border-2 border-dashed border-gray-200 hover:border-gray-300 hover:bg-gray-100 focus-within:border-[#a88641] focus-within:bg-blue-50 transition-all duration-200 rounded-lg p-6 text-center cursor-pointer">
+                                        <input type="file" name="attachment" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" 
+                                               class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" id="fileInput">
+                                        <div class="space-y-3">
+                                            <div class="mx-auto w-12 h-12 bg-white border-2 border-gray-200 rounded-full flex items-center justify-center">
+                                                <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                                                 </svg>
-                </button>
+                                            </div>
+                                            <div>
+                                                <p class="text-sm text-gray-600 font-medium">Click to select file</p>
+                                                <p class="text-xs text-gray-500 mt-1">or drag and drop</p>
+                                            </div>
+                                            <div class="text-xs text-gray-400 bg-gray-100 px-3 py-1 rounded-full inline-block">
+                                                PDF, DOC, DOCX, JPG, PNG • Max 5MB
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="fileName" class="hidden mt-3 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700 flex items-center">
+                                        <svg class="h-4 w-4 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                        <span class="flex-1"></span>
+                                        <button type="button" onclick="clearFile()" class="ml-2 text-green-600 hover:text-green-800 transition-colors">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Error Display -->
+                            <div id="formError" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                                <div class="flex">
+                                    <svg class="h-5 w-5 text-red-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                                    </svg>
+                                    <span class="text-sm font-medium"></span>
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <button type="submit" class="w-full bg-gradient-to-r from-[#a88641] to-[#916f34] hover:from-[#916f34] hover:to-[#7a5a2a] text-white py-4 px-6 rounded-xl font-semibold shadow-lg hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center group">
+                                <span class="submit-text">Submit Leave Request</span>
+                                <svg class="hidden animate-spin ml-2 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <svg class="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
+
+            <!-- Leave Balances and History -->
+            <div class="lg:col-span-2 order-2 lg:order-2 space-y-6 lg:space-y-8">
+                <!-- Leave Balances -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <!-- Balance Header -->
+                    <div class="px-6 py-4 bg-slate-100 border-b border-slate-200">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center mr-3">
+                                <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                            </div>
+                            <h2 class="text-xl font-semibold text-gray-900">Leave Balances</h2>
+                        </div>
+                    </div>
+                    
+                    <!-- Balance Content -->
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                            @foreach (var balance in leaveBalances)
+                            {
+                                <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-5 border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200 group">
+                                    <div class="flex items-center justify-between mb-4">
+                                        <h3 class="font-semibold text-gray-900 text-lg">@balance.Type</h3>
+                                        <div class="p-2 bg-white rounded-full shadow-sm group-hover:shadow-md transition-shadow">
+                                            <svg class="h-5 w-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="space-y-3">
+                                        <!-- Total -->
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm font-medium text-gray-600">Total Allocated</span>
+                                            <span class="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-full">@balance.Total days</span>
+                                        </div>
+                                        
+                                        <!-- Used -->
+                                        <div class="flex justify-between items-center">
+                                            <span class="text-sm font-medium text-gray-600">Used</span>
+                                            <span class="text-sm font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-full">@balance.Used days</span>
+                                        </div>
+                                        
+                                        <!-- Remaining -->
+                                        <div class="flex justify-between items-center pt-2 border-t border-gray-200">
+                                            <span class="text-sm font-semibold text-gray-700">Remaining</span>
+                                            <span class="text-lg font-bold text-green-600 bg-green-50 px-3 py-1 rounded-full">@balance.Remaining days</span>
+                                        </div>
+                                        
+                                        <!-- Progress Bar -->
+                                        <div class="mt-3">
+                                            <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                                <span>Usage Progress</span>
+                                                <span>@(balance.Total > 0 ? Math.Round((double)balance.Used / balance.Total * 100, 1) : 0)%</span>
+                                            </div>
+                                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                                <div class="h-2 rounded-full @(balance.Total > 0 && (double)balance.Used / balance.Total > 0.8 ? "bg-red-500" : balance.Total > 0 && (double)balance.Used / balance.Total > 0.6 ? "bg-yellow-500" : "bg-green-500")" 
+                                                     style="width: @(balance.Total > 0 ? Math.Min((double)balance.Used / balance.Total * 100, 100) : 0)%"></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             }
-                        }
-                        else
+                        </div>
+                        
+                        @if (!leaveBalances.Any())
                         {
-                            <div class="p-6 text-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-gray-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                                <p class="text-gray-500 mb-1">No pending leave requests</p>
-                                <p class="text-sm text-gray-400">All leave requests have been processed</p>
+                            <div class="text-center py-8">
+                                <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                                </svg>
+                                <p class="text-gray-500 text-lg font-medium">No leave balances available</p>
+                                <p class="text-gray-400 text-sm">Contact HR to set up your leave allocations</p>
                             </div>
                         }
                     </div>
                 </div>
 
-                <!-- Leave History Section -->
-                <div>
-                    <div class="flex justify-between items-center mb-6">
-                        <h2 class="text-2xl font-semibold text-gray-800">Leave History</h2>
-                        <select id="statusFilter" class="rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring focus:ring-[#a88641] focus:ring-opacity-50">
-                            <option value="all">All Status</option>
-                            <option value="approved">Approved</option>
-                            <option value="rejected">Rejected</option>
-                            <option value="cancelled">Cancelled</option>
-                        </select>
-            </div>
+                <!-- Leave History -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    <!-- Pending Requests Section -->
+                    <div class="border-b border-gray-200">
+                        <!-- Pending Header -->
+                        <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center mr-3">
+                                        <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h2 class="text-xl font-semibold text-gray-900">Pending Requests</h2>
+                                        <p class="text-sm text-gray-600">Requests awaiting approval</p>
+                                    </div>
+                                </div>
+                                <span class="bg-amber-100 text-amber-800 text-sm font-medium px-3 py-1 rounded-full">
+                                    @leaveRequests.Count(r => r.Status.ToLower() is "pending" or "emergency") pending
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- Pending Content -->
+                        <div class="p-6">
+                            <div id="pendingRequestsContainer" class="space-y-4">
+                                @if (leaveRequests.Any(r => r.Status.ToLower() is "pending" or "emergency"))
+                                {
+                                    @foreach (var request in leaveRequests.Where(r => r.Status.ToLower() is "pending" or "emergency"))
+                                    {
+                                        <div class="leave-request bg-gradient-to-r from-white to-gray-50 rounded-lg p-5 border-l-4 shadow-sm hover:shadow-lg transition-all duration-300 ease-in-out transform hover:scale-[1.02] @(request.Status.ToLower() switch {
+                                            "emergency" => "border-red-500 hover:border-red-600",
+                                            _ => "border-yellow-500 hover:border-yellow-600"
+                                        })"
+                                             data-date="@string.Format("{0:yyyy-MM-dd}", request.StartDate)"
+                                             data-status="@request.Status.ToLower()">
+                                            
+                                            <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start space-y-4 lg:space-y-0">
+                                                <!-- Request Details -->
+                                                <div class="flex-1 space-y-3">
+                                                    <!-- Header -->
+                                                    <div class="flex items-center justify-between lg:justify-start lg:space-x-4">
+                                                        <h3 class="font-semibold text-gray-900 text-lg flex items-center">
+                                                            <svg class="h-5 w-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a1.994 1.994 0 01-1.414.586H7a4 4 0 01-4-4V7a4 4 0 014-4z"/>
+                                                            </svg>
+                                                            @request.LeaveType
+                                                        </h3>
+                                                        <span class="lg:hidden px-3 py-1 text-sm font-medium rounded-full shadow-sm @(request.Status.ToLower() switch {
+                                                            "emergency" => "bg-red-100 text-red-800 ring-1 ring-red-600/20",
+                                                            _ => "bg-yellow-100 text-yellow-800 ring-1 ring-yellow-600/20"
+                                                        })">
+                                                            @request.Status
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <!-- Date Range -->
+                                                    <div class="flex items-center text-gray-600 bg-blue-50 p-3 rounded-lg">
+                                                        <svg class="h-5 w-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                        </svg>
+                                                        <span class="font-medium">@string.Format("{0:MMM d, yyyy}", request.StartDate) - @string.Format("{0:MMM d, yyyy}", request.EndDate)</span>
+                                                        <span class="ml-auto bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">
+                                                            @(request.EndDate.HasValue && request.StartDate.HasValue ? (request.EndDate.Value - request.StartDate.Value).Days + 1 : 0) days
+                                                        </span>
+                                                    </div>
+                                                    
+                                                    <!-- Reason -->
+                                                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                                        <p class="text-sm font-medium text-gray-700 mb-1">Reason:</p>
+                                                        <p class="text-sm text-gray-600 leading-relaxed">@request.Reason</p>
+                                                    </div>
+                                                    
+                                                    <!-- Metadata -->
+                                                    <div class="flex flex-wrap items-center gap-4 text-xs text-gray-500">
+                                                        <span class="flex items-center">
+                                                            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                            </svg>
+                                                            Submitted: @string.Format("{0:MMM d, yyyy}", request.SubmittedOn)
+                                                        </span>
+                                                        @if (!string.IsNullOrEmpty(request.AttachmentFileName))
+                                                        {
+                                                            <a href="@Url.Action("DownloadAttachment", new { id = request.Id })" 
+                                                               class="flex items-center text-[#a88641] hover:text-[#916f34] font-medium group transition-colors">
+                                                                <svg class="h-4 w-4 mr-1 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                                </svg>
+                                                                Download Attachment
+                                                            </a>
+                                                        }
+                                                    </div>
+                                                </div>
+                                                
+                                                <!-- Actions -->
+                                                <div class="flex items-center justify-between lg:flex-col lg:items-end lg:space-y-3">
+                                                    <span class="hidden lg:block px-3 py-1 text-sm font-medium rounded-full shadow-sm @(request.Status.ToLower() switch {
+                                                        "emergency" => "bg-red-100 text-red-800 ring-1 ring-red-600/20",
+                                                        _ => "bg-yellow-100 text-yellow-800 ring-1 ring-yellow-600/20"
+                                                    })">
+                                                        @request.Status
+                                                    </span>
+                                                    <button onclick="cancelLeaveRequest(@request.Id)" 
+                                                            class="inline-flex items-center px-3 py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 hover:text-red-700 hover:border-red-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200 group">
+                                                        <svg class="h-4 w-4 mr-1 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16"/>
+                                                        </svg>
+                                                        Cancel Request
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <div class="text-center py-12">
+                                        <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                            <svg class="h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                        </div>
+                                        <h3 class="text-lg font-medium text-gray-900 mb-2">No pending requests</h3>
+                                        <p class="text-gray-500 mb-4">All your leave requests have been processed</p>
+                                        <div class="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                                            <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            All Clear
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
 
-                    <div id="leaveRequestsContainer">
-                        @foreach (var request in leaveRequests.Where(r => r.Status.ToLower() is not "pending" and not "emergency"))
-                        {
-                            <div class="leave-request mb-4 bg-white rounded-lg p-4 border-l-4 shadow-sm hover:shadow-md transition-all duration-200 ease-in-out @(request.Status.ToLower() switch {
-                                "approved" => "border-green-500",
-                                "rejected" => "border-red-500",
-                                "cancelled" => "border-gray-500",
-                                _ => "border-yellow-500"
-                            })"
-                                 data-date="@string.Format("{0:yyyy-MM-dd}", request.StartDate)"
-                                 data-status="@request.Status.ToLower()">
-                                <div class="flex justify-between items-start">
-                <div>
-                                        <h3 class="font-medium text-gray-900 mb-1">@request.LeaveType</h3>
-                                        <p class="text-sm text-gray-600 mb-2">@string.Format("{0:MMM d, yyyy}", request.StartDate) - @string.Format("{0:MMM d, yyyy}", request.EndDate)</p>
-                                        <p class="text-sm text-gray-500">Duration: @(request.EndDate.HasValue && request.StartDate.HasValue ? (request.EndDate.Value - request.StartDate.Value).Days + 1 : 0) days</p>
-                                        <p class="text-sm text-gray-700 bg-gray-50 p-2 rounded-md">@request.Reason</p>
-                                        <p class="text-sm text-gray-500 mt-2">Submitted on: @string.Format("{0:MMM d, yyyy}", request.SubmittedOn)</p>
-                                        @if (!string.IsNullOrEmpty(request.RejectionReason))
-                                        {
-                                            <p class="text-sm text-red-600 mt-2 bg-red-50 p-2 rounded-md">Rejection Reason: @request.RejectionReason</p>
-                                        }
-                                        @if (!string.IsNullOrEmpty(request.AttachmentFileName))
-                                        {
-                                            <a href="@Url.Action("DownloadAttachment", new { id = request.Id })" 
-                                               class="text-sm text-[#a88641] hover:text-[#97763a] mt-2 inline-flex items-center group">
-                                                <svg class="h-4 w-4 mr-1 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                                </svg>
-                                                Download Attachment
-                                            </a>
-                                        }
-                </div>
-                                    <div class="flex items-center space-x-2">
-                                        <span class="px-3 py-1 text-sm font-medium rounded-full shadow-sm @(request.Status.ToLower() switch {
-                                            "approved" => "bg-green-100 text-green-800 ring-1 ring-green-600/20",
-                                            "rejected" => "bg-red-100 text-red-800 ring-1 ring-red-600/20",
-                                            "cancelled" => "bg-gray-100 text-gray-800 ring-1 ring-gray-600/20",
-                                            _ => "bg-yellow-100 text-yellow-800 ring-1 ring-yellow-600/20"
-                                        })">
-                                            @request.Status
-                                        </span>
-            </div>
-        </div>
-    </div>
-                        }
+                    <!-- Leave History Section -->
+                    <div class="border-t border-gray-200">
+                        <!-- History Header -->
+                        <div class="px-6 py-4 bg-slate-50 border-b border-slate-200">
+                            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center mr-3">
+                                        <svg class="h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h2 class="text-xl font-semibold text-gray-900">Leave History</h2>
+                                        <p class="text-sm text-gray-600">Previously processed requests</p>
+                                    </div>
+                                    <span class="ml-3 bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
+                                        @leaveRequests.Count(r => r.Status.ToLower() is not "pending" and not "emergency") records
+                                    </span>
+                                </div>
+                                <div class="flex items-center space-x-3">
+                                    <label class="text-gray-700 text-sm font-medium">Filter:</label>
+                                    <select id="statusFilter" class="rounded-lg border-2 border-gray-200 bg-white text-gray-900 text-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 hover:border-gray-300">
+                                        <option value="all">All Status</option>
+                                        <option value="approved">Approved</option>
+                                        <option value="rejected">Rejected</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- History Content -->
+                        <div class="p-6">
+                            <div id="leaveRequestsContainer" class="space-y-4">
+                                @foreach (var request in leaveRequests.Where(r => r.Status.ToLower() is not "pending" and not "emergency"))
+                                {
+                                    <div class="leave-request bg-gradient-to-r from-white to-gray-50 rounded-lg p-5 border-l-4 shadow-sm hover:shadow-lg transition-all duration-300 ease-in-out transform hover:scale-[1.01] @(request.Status.ToLower() switch {
+                                        "approved" => "border-green-500 hover:border-green-600",
+                                        "rejected" => "border-red-500 hover:border-red-600",
+                                        "cancelled" => "border-gray-500 hover:border-gray-600",
+                                        _ => "border-yellow-500 hover:border-yellow-600"
+                                    })"
+                                         data-date="@string.Format("{0:yyyy-MM-dd}", request.StartDate)"
+                                         data-status="@request.Status.ToLower()">
+                                        
+                                        <div class="flex flex-col lg:flex-row lg:justify-between lg:items-start space-y-4 lg:space-y-0">
+                                            <!-- Request Details -->
+                                            <div class="flex-1 space-y-3">
+                                                <!-- Header with Status -->
+                                                <div class="flex items-center justify-between lg:justify-start lg:space-x-4">
+                                                    <h3 class="font-semibold text-gray-900 text-lg flex items-center">
+                                                        <svg class="h-5 w-5 mr-2 @(request.Status.ToLower() switch {
+                                                            "approved" => "text-green-600",
+                                                            "rejected" => "text-red-600", 
+                                                            "cancelled" => "text-gray-600",
+                                                            _ => "text-blue-600"
+                                                        })" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a1.994 1.994 0 01-1.414.586H7a4 4 0 01-4-4V7a4 4 0 014-4z"/>
+                                                        </svg>
+                                                        @request.LeaveType
+                                                    </h3>
+                                                    <span class="lg:hidden px-3 py-1 text-sm font-medium rounded-full shadow-sm @(request.Status.ToLower() switch {
+                                                        "approved" => "bg-green-100 text-green-800 ring-1 ring-green-600/20",
+                                                        "rejected" => "bg-red-100 text-red-800 ring-1 ring-red-600/20",
+                                                        "cancelled" => "bg-gray-100 text-gray-800 ring-1 ring-gray-600/20",
+                                                        _ => "bg-yellow-100 text-yellow-800 ring-1 ring-yellow-600/20"
+                                                    })">
+                                                        @request.Status
+                                                    </span>
+                                                </div>
+                                                
+                                                <!-- Date Range -->
+                                                <div class="flex items-center text-gray-600 bg-blue-50 p-3 rounded-lg">
+                                                    <svg class="h-5 w-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                                                    </svg>
+                                                    <span class="font-medium">@string.Format("{0:MMM d, yyyy}", request.StartDate) - @string.Format("{0:MMM d, yyyy}", request.EndDate)</span>
+                                                    <span class="ml-auto bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-sm font-medium">
+                                                        @(request.EndDate.HasValue && request.StartDate.HasValue ? (request.EndDate.Value - request.StartDate.Value).Days + 1 : 0) days
+                                                    </span>
+                                                </div>
+                                                
+                                                <!-- Reason -->
+                                                <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                                    <p class="text-sm font-medium text-gray-700 mb-1">Reason:</p>
+                                                    <p class="text-sm text-gray-600 leading-relaxed">@request.Reason</p>
+                                                </div>
+                                                
+                                                @if (!string.IsNullOrEmpty(request.RejectionReason))
+                                                {
+                                                    <div class="bg-red-50 border border-red-200 rounded-lg p-3">
+                                                        <p class="text-sm font-medium text-red-700 mb-1 flex items-center">
+                                                            <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                            </svg>
+                                                            Rejection Reason:
+                                                        </p>
+                                                        <p class="text-sm text-red-600 leading-relaxed">@request.RejectionReason</p>
+                                                    </div>
+                                                }
+                                                
+                                                <!-- Metadata -->
+                                                <div class="flex flex-wrap items-center gap-4 text-xs text-gray-500">
+                                                    <span class="flex items-center">
+                                                        <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                        </svg>
+                                                        Submitted: @string.Format("{0:MMM d, yyyy}", request.SubmittedOn)
+                                                    </span>
+                                                    @if (!string.IsNullOrEmpty(request.AttachmentFileName))
+                                                    {
+                                                        <a href="@Url.Action("DownloadAttachment", new { id = request.Id })" 
+                                                           class="flex items-center text-[#a88641] hover:text-[#916f34] font-medium group transition-colors">
+                                                            <svg class="h-4 w-4 mr-1 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                                            </svg>
+                                                            Download Attachment
+                                                        </a>
+                                                    }
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Status Badge (Desktop) -->
+                                            <div class="hidden lg:flex lg:items-start">
+                                                <span class="px-4 py-2 text-sm font-medium rounded-full shadow-sm @(request.Status.ToLower() switch {
+                                                    "approved" => "bg-green-100 text-green-800 ring-1 ring-green-600/20",
+                                                    "rejected" => "bg-red-100 text-red-800 ring-1 ring-red-600/20",
+                                                    "cancelled" => "bg-gray-100 text-gray-800 ring-1 ring-gray-600/20",
+                                                    _ => "bg-yellow-100 text-yellow-800 ring-1 ring-yellow-600/20"
+                                                })">
+                                                    @request.Status
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -227,35 +592,138 @@
 </div>
 
 <!-- Cancel Leave Request Confirmation Modal -->
-<div id="cancelLeaveModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-lg p-6 max-w-sm mx-4 w-full transform transition-all">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-medium text-gray-900">Confirm Cancellation</h3>
-            <button onclick="closeCancelModal()" class="text-gray-400 hover:text-gray-500">
-                <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-        <div class="mb-6">
-            <p class="text-sm text-gray-600">Are you sure you want to cancel this leave request? This action cannot be undone.</p>
-        </div>
-        <input type="hidden" id="leaveRequestIdToCancel" />
-        <div class="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
-            <button type="button" onclick="closeCancelModal()" 
-                    class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641]">
-                Cancel
-            </button>
-            <button type="button" onclick="confirmCancelLeaveRequest()" 
-                    class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                Cancel Leave Request
-            </button>
+<div id="cancelLeaveModal" class="fixed inset-0 z-50 hidden">
+    <!-- Modal Backdrop -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+    
+    <!-- Modal Content -->
+    <div class="fixed inset-0 flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-auto transform transition-all">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                        <svg class="h-6 w-6 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                        Confirm Cancellation
+                    </h3>
+                    <button onclick="closeCancelModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="px-6 py-4">
+                <div class="flex items-start space-x-3">
+                    <div class="flex-shrink-0">
+                        <svg class="h-8 w-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm text-gray-600 mb-3">
+                            Are you sure you want to cancel this leave request? This action cannot be undone.
+                        </p>
+                        <div class="bg-red-50 border border-red-200 rounded-md p-3">
+                            <p class="text-xs text-red-700">
+                                <strong>Note:</strong> Once cancelled, you'll need to submit a new request if you still need time off.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 bg-gray-50 flex justify-end space-x-3 rounded-b-lg">
+                <input type="hidden" id="leaveRequestIdToCancel" />
+                <button type="button" onclick="closeCancelModal()" 
+                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
+                    Keep Request
+                </button>
+                <button type="button" onclick="confirmCancelLeaveRequest()" 
+                        class="px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                    <span class="flex items-center">
+                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1-1H8a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                        Cancel Request
+                    </span>
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
     <script src="~/js/leave-request-sorting.js"></script>
+    
+    <style>
+        /* Form styling */
+        .form-input:focus {
+            outline: none;
+            ring: 2px;
+            ring-color: #a88641;
+            border-color: #a88641;
+        }
+        
+        /* Custom select styling */
+        select {
+            background-image: none;
+        }
+        
+        /* Button hover effects */
+        .btn-hover:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 25px rgba(168, 134, 65, 0.25);
+        }
+        
+        /* Card hover effects */
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Smooth transitions */
+        .transition-smooth {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Mobile responsive adjustments */
+        @@media (max-width: 640px) {
+            .text-responsive {
+                font-size: 0.875rem;
+            }
+        }
+        
+        /* Progress bar animations */
+        .progress-bar {
+            transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Custom scrollbar for webkit browsers */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('leaveRequestForm');
@@ -264,6 +732,32 @@
             const spinner = submitButton.querySelector('svg');
             const formError = document.getElementById('formError');
             
+            // Enhanced file upload functionality
+            const fileInput = document.getElementById('fileInput');
+            const fileName = document.getElementById('fileName');
+            
+            // Clear file function
+            window.clearFile = function() {
+                fileInput.value = '';
+                fileName.classList.add('hidden');
+            };
+            
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    fileName.querySelector('span').textContent = `Selected: ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+                    fileName.classList.remove('hidden');
+                    
+                    // Add file size validation
+                    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+                        showNotification('File size must be less than 5MB', 'error');
+                        clearFile();
+                    }
+                } else {
+                    fileName.classList.add('hidden');
+                }
+            });
+            
             // Character count for reason textarea
             const reasonTextarea = form.querySelector('textarea[name="Reason"]');
             const charCount = form.querySelector('.char-count');
@@ -271,18 +765,53 @@
             reasonTextarea.addEventListener('input', function() {
                 const count = this.value.length;
                 charCount.textContent = count;
+                
                 if (count > 500) {
                     this.value = this.value.substring(0, 500);
                     charCount.textContent = '500';
                 }
             });
 
-            // Date validation
+            // Enhanced date validation with visual feedback
             const startDateInput = form.querySelector('input[name="StartDate"]');
             const endDateInput = form.querySelector('input[name="EndDate"]');
+            const durationDisplay = document.getElementById('durationDisplay');
+            const durationText = document.getElementById('durationText');
             
-            startDateInput.addEventListener('change', validateDates);
-            endDateInput.addEventListener('change', validateDates);
+            // Set minimum date to today
+            const today = new Date().toISOString().split('T')[0];
+            startDateInput.min = today;
+            endDateInput.min = today;
+            
+            function calculateDuration() {
+                if (startDateInput.value && endDateInput.value) {
+                    const start = new Date(startDateInput.value);
+                    const end = new Date(endDateInput.value);
+                    
+                    if (start <= end) {
+                        const diffTime = Math.abs(end - start);
+                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                        
+                        durationText.textContent = `Duration: ${diffDays} day${diffDays > 1 ? 's' : ''} ${diffDays > 7 ? '(Extended Leave)' : '(Short Leave)'}`;
+                        durationDisplay.classList.remove('hidden');
+                    } else {
+                        durationDisplay.classList.add('hidden');
+                    }
+                } else {
+                    durationDisplay.classList.add('hidden');
+                }
+            }
+            
+            startDateInput.addEventListener('change', function() {
+                endDateInput.min = this.value || today;
+                calculateDuration();
+                validateDates();
+            });
+            
+            endDateInput.addEventListener('change', function() {
+                calculateDuration();
+                validateDates();
+            });
             
             function validateDates() {
                 const startDate = new Date(startDateInput.value);
@@ -290,36 +819,43 @@
                 const startDateError = form.querySelector('.start-date-error');
                 const endDateError = form.querySelector('.end-date-error');
                 
+                // Clear previous errors
                 startDateError.classList.add('hidden');
                 endDateError.classList.add('hidden');
+                startDateInput.classList.remove('border-red-300');
+                endDateInput.classList.remove('border-red-300');
                 
                 if (!startDateInput.value) {
                     startDateError.textContent = 'Start date is required';
                     startDateError.classList.remove('hidden');
+                    startDateInput.classList.add('border-red-300');
                     return false;
                 }
                 
                 if (!endDateInput.value) {
                     endDateError.textContent = 'End date is required';
                     endDateError.classList.remove('hidden');
+                    endDateInput.classList.add('border-red-300');
                     return false;
                 }
                 
                 if (startDate > endDate) {
                     endDateError.textContent = 'End date must be after start date';
                     endDateError.classList.remove('hidden');
+                    endDateInput.classList.add('border-red-300');
                     return false;
                 }
                 
                 return true;
             }
 
+            // Enhanced form submission
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
                 // Reset error states
                 formError.classList.add('hidden');
-                form.querySelectorAll('.text-red-600').forEach(el => el.classList.add('hidden'));
+                form.querySelectorAll('.text-red-500').forEach(el => el.classList.add('hidden'));
                 
                 // Validate form
                 if (!form.checkValidity()) {
@@ -335,6 +871,7 @@
                 submitButton.disabled = true;
                 submitText.textContent = 'Submitting...';
                 spinner.classList.remove('hidden');
+                submitButton.classList.add('opacity-75', 'scale-95');
                 
                 const formData = new FormData(this);
                 
@@ -347,31 +884,37 @@
                     const result = await response.json();
                     
                     if (result.success) {
-                        // Show success message
-                        formError.classList.remove('hidden');
-                        formError.classList.remove('bg-red-50', 'border-red-200', 'text-red-600');
-                        formError.classList.add('bg-green-50', 'border-green-200', 'text-green-600');
-                        formError.textContent = result.message;
+                        // Show success notification
+                        showNotification(result.message || 'Leave request submitted successfully!', 'success');
                         
-                        // Reset form
-                        form.reset();
-                        charCount.textContent = '0';
+                        // Show success in form
+                        formError.classList.remove('hidden', 'bg-red-50', 'border-red-200', 'text-red-700');
+                        formError.classList.add('bg-green-50', 'border-green-200', 'text-green-700');
+                        formError.querySelector('span').textContent = result.message || 'Leave request submitted successfully!';
                         
-                        // Reload page after 2 seconds
-                        setTimeout(() => location.reload(), 2000);
+                        // Reset form after delay
+                        setTimeout(() => {
+                            form.reset();
+                            charCount.textContent = '0';
+                            fileName.classList.add('hidden');
+                            durationDisplay.classList.add('hidden');
+                            
+                            // Smooth scroll to top
+                            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }, 1000);
+                        
+                        // Reload page after 3 seconds
+                        setTimeout(() => location.reload(), 3000);
                     } else {
-                        // Show error message
+                        // Handle errors
+                        showNotification(result.message || 'Failed to submit request', 'error');
                         formError.classList.remove('hidden');
-                        formError.textContent = result.message || 'Failed to submit request';
+                        formError.querySelector('span').textContent = result.message || 'Failed to submit request';
                         
                         // Handle validation errors
                         if (result.errors && Array.isArray(result.errors)) {
-                            // Clear previous errors
-                            form.querySelectorAll('.text-red-600').forEach(el => el.classList.add('hidden'));
-                            
-                            // Display each error
+                            form.querySelectorAll('.text-red-500').forEach(el => el.classList.add('hidden'));
                             result.errors.forEach(error => {
-                                // Try to match the error to a specific field
                                 const fieldMatch = error.toLowerCase().match(/^([a-z]+)/);
                                 if (fieldMatch) {
                                     const field = fieldMatch[1];
@@ -384,7 +927,6 @@
                             });
                         }
 
-                        // Handle model state errors
                         if (result.modelState) {
                             Object.entries(result.modelState).forEach(([field, errors]) => {
                                 const errorElement = form.querySelector(`.${field.toLowerCase()}-error`);
@@ -394,29 +936,42 @@
                                 }
                             });
                         }
-
-                        // Log the full error response for debugging
-                        console.log('Validation errors:', result);
                     }
                 } catch (error) {
                     console.error('Error:', error);
+                    showNotification('An error occurred while submitting the request.', 'error');
                     formError.classList.remove('hidden');
-                    formError.textContent = 'An error occurred while submitting the request.';
+                    formError.querySelector('span').textContent = 'An error occurred while submitting the request.';
                 } finally {
                     // Reset button state
                     submitButton.disabled = false;
-                    submitText.textContent = 'Submit Request';
+                    submitText.textContent = 'Submit Leave Request';
                     spinner.classList.add('hidden');
+                    submitButton.classList.remove('opacity-75', 'scale-95');
                 }
             });
         });
 
-        // Update the cancelLeaveRequest function
+        // Update cancelLeaveRequest function
         window.cancelLeaveRequest = function(id) {
             document.getElementById('leaveRequestIdToCancel').value = id;
             const modal = document.getElementById('cancelLeaveModal');
             modal.classList.remove('hidden');
             modal.classList.add('flex');
+            
+            // Enhanced modal interactions
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeCancelModal();
+                }
+            });
+            
+            document.addEventListener('keydown', function escapeHandler(e) {
+                if (e.key === 'Escape') {
+                    closeCancelModal();
+                    document.removeEventListener('keydown', escapeHandler);
+                }
+            });
         }
 
         function closeCancelModal() {
@@ -435,7 +990,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'RequestVerificationToken': tokenElement.value
+                        'X-CSRF-TOKEN': tokenElement.value
                     },
                     body: JSON.stringify(id)
                 });
@@ -443,31 +998,81 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showNotification('success', result.message);
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1500);
+                    showNotification(result.message || 'Leave request cancelled successfully', 'success');
+                    setTimeout(() => location.reload(), 1500);
                 } else {
-                    showNotification('error', result.message);
+                    showNotification(result.message || 'Failed to cancel request', 'error');
                 }
                 closeCancelModal();
             } catch (error) {
                 console.error('Error:', error);
-                showNotification('error', 'An error occurred while cancelling the request.');
+                showNotification('An error occurred while cancelling the request.', 'error');
                 closeCancelModal();
             }
         }
 
-        function showNotification(type, message) {
+        // Enhanced notification system
+        function showNotification(message, type = 'info') {
             const container = document.getElementById('notificationContainer');
             const notification = document.createElement('div');
-            notification.className = `p-4 mb-4 rounded-md ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
-            notification.innerHTML = message;
+            
+            notification.className = `transform transition-all duration-500 ease-out p-4 mb-4 rounded-xl shadow-lg border max-w-sm ${
+                type === 'success' 
+                    ? 'bg-green-50 text-green-800 border-green-200' 
+                    : type === 'error' 
+                        ? 'bg-red-50 text-red-800 border-red-200'
+                        : 'bg-blue-50 text-blue-800 border-blue-200'
+            }`;
+            
+            notification.innerHTML = `
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 mt-0.5 ${
+                            type === 'success' ? 'text-green-600' : type === 'error' ? 'text-red-600' : 'text-blue-600'
+                        }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            ${type === 'success' 
+                                ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>'
+                                : type === 'error'
+                                    ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>'
+                                    : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>'
+                            }
+                        </svg>
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <p class="text-sm font-medium leading-5">${message}</p>
+                    </div>
+                    <div class="ml-4 flex-shrink-0">
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" 
+                                class="inline-flex text-gray-400 hover:text-gray-600 transition-colors duration-200">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Enhanced animation
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100%) scale(0.95)';
             
             container.appendChild(notification);
             
+            // Trigger animation
+            requestAnimationFrame(() => {
+                notification.style.opacity = '1';
+                notification.style.transform = 'translateX(0) scale(1)';
+            });
+            
+            // Auto-remove after 5 seconds
             setTimeout(() => {
-                notification.remove();
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100%) scale(0.95)';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.remove();
+                    }
+                }, 500);
             }, 5000);
         }
     </script>

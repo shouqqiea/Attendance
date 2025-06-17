@@ -647,7 +647,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': token
+                    'X-CSRF-TOKEN': token
                 },
                 body: JSON.stringify(data)
             })
@@ -716,7 +716,7 @@
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': token
+                    'X-CSRF-TOKEN': token
                 },
                 body: JSON.stringify(id) // Send just the ID as a string
             })

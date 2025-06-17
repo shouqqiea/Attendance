@@ -173,7 +173,7 @@ function approveRequest(requestId) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'RequestVerificationToken': token
+            'X-CSRF-TOKEN': token
         },
         body: JSON.stringify(parseInt(requestIdNumber))
     })
@@ -242,7 +242,7 @@ function rejectRequest(requestId, reason) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'RequestVerificationToken': token
+            'X-CSRF-TOKEN': token
         },
         body: JSON.stringify({
             id: parseInt(requestIdNumber),

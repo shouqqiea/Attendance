@@ -10,7 +10,8 @@ using LetsCheckIn.Helpers;
 
 namespace LetsCheckIn.Controllers
 {
-    [Authorize(Roles = "SuperAdmin,Admin")]
+    // ✅ Use Dynamic role authorization instead of ASP.NET Identity
+    [DynamicRoleAuthorize("SuperAdmin,Admin")]
     public class UserManagementController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -18,22 +19,20 @@ namespace LetsCheckIn.Controllers
         private readonly IBranchAccessService _branchAccessService;
         private readonly LetsCheckIn.Helpers.IDynamicPermissionService _permissionService;
         private readonly ILogger<UserManagementController> _logger;
-        private readonly RoleManager<IdentityRole> _roleManager;
 
+        // ✅ Removed RoleManager dependency - using only Dynamic roles
         public UserManagementController(
             ApplicationDbContext context,
             UserManager<ApplicationUser> userManager,
             IBranchAccessService branchAccessService,
             LetsCheckIn.Helpers.IDynamicPermissionService permissionService,
-            ILogger<UserManagementController> logger,
-            RoleManager<IdentityRole> roleManager)
+            ILogger<UserManagementController> logger)
         {
             _context = context;
             _userManager = userManager;
             _branchAccessService = branchAccessService;
             _permissionService = permissionService;
             _logger = logger;
-            _roleManager = roleManager;
         }
 
         public async Task<IActionResult> Index()
@@ -52,15 +51,8 @@ namespace LetsCheckIn.Controllers
                     .ToListAsync();
                 ViewBag.Branches = branches;
 
-                // Get available roles for the filter dropdown
+                // ✅ Get available roles from Dynamic roles only
                 var availableRoles = new HashSet<string>();
-
-                // Get all Identity roles
-                var identityRoles = await _roleManager.Roles.Select(r => r.Name).ToListAsync();
-                foreach (var role in identityRoles.Where(r => r != null))
-                {
-                    availableRoles.Add(role);
-                }
 
                 // Get dynamic roles for accessible branches
                 foreach (var branchId in accessibleBranchIds)
@@ -75,7 +67,7 @@ namespace LetsCheckIn.Controllers
                 _logger.LogInformation($"Retrieved {availableRoles.Count} total roles for user {currentUser.Id}");
                 ViewBag.Roles = availableRoles.OrderBy(r => r).ToList();
 
-                // Get users with their roles and employee info in a single query
+                // ✅ Get users with their Dynamic roles and employee info
                 var users = await _context.Users
                     .Include(u => u.Employee)
                         .ThenInclude(e => e.Branch)
@@ -87,9 +79,9 @@ namespace LetsCheckIn.Controllers
                         Email = u.Email,
                         UserName = u.UserName,
                         BranchName = u.Employee.Branch.BranchName,
-                        Roles = _context.UserRoles
-                            .Where(ur => ur.UserId == u.Id)
-                            .Join(_context.Roles, ur => ur.RoleId, r => r.Id, (ur, r) => r.Name)
+                        Roles = _context.DynamicUserRoles
+                            .Where(ur => ur.UserId == u.Id && ur.IsActive)
+                            .Join(_context.DynamicRoles, ur => ur.RoleId, r => r.RoleId, (ur, r) => r.RoleName)
                             .ToList() ?? new List<string>(),
                         IsActive = u.Employee.Status,
                         CreatedDate = u.Employee.CreatedDate,
@@ -253,23 +245,9 @@ namespace LetsCheckIn.Controllers
                         };
                         _context.Employee.Add(newEmployee);
 
-                        // Ensure roles exist in Identity and assign them
+                        // ✅ Assign roles using only Dynamic role system
                         foreach (var role in model.Roles)
                         {
-                            if (!await _roleManager.RoleExistsAsync(role))
-                            {
-                                _logger.LogInformation($"Creating Identity role: {role}");
-                                await _roleManager.CreateAsync(new IdentityRole(role));
-                            }
-
-                            // Assign role
-                            var existingRoleResult = await _userManager.AddToRoleAsync(existingUser, role);
-                            if (!existingRoleResult.Succeeded)
-                            {
-                                _logger.LogError($"Failed to assign role {role}: {string.Join(", ", existingRoleResult.Errors.Select(e => e.Description))}");
-                                return Json(new { success = false, message = $"Failed to assign role: {role}", errors = existingRoleResult.Errors.Select(e => e.Description) });
-                            }
-
                             // Ensure role exists in DynamicRoles
                             var existingDynamicRole = await _context.DynamicRoles.FirstOrDefaultAsync(r => r.RoleName == role);
                             if (existingDynamicRole == null)
@@ -332,16 +310,9 @@ namespace LetsCheckIn.Controllers
                 };
                 _context.Employee.Add(employee);
 
-                // Ensure roles exist and assign them
+                // ✅ Assign roles using only Dynamic role system
                 foreach (var role in model.Roles)
                 {
-                    // Ensure role exists in Identity
-                    if (!await _roleManager.RoleExistsAsync(role))
-                    {
-                        _logger.LogInformation($"Creating Identity role: {role}");
-                        await _roleManager.CreateAsync(new IdentityRole(role));
-                    }
-
                     // Ensure role exists in DynamicRoles
                     var dynamicRole = await _context.DynamicRoles.FirstOrDefaultAsync(r => r.RoleName == role);
                     if (dynamicRole == null)
@@ -355,16 +326,6 @@ namespace LetsCheckIn.Controllers
                             await _userManager.DeleteAsync(user);
                             return Json(new { success = false, message = $"Failed to create dynamic role: {role}" });
                         }
-                    }
-
-                    // Assign role in Identity
-                    var roleResult = await _userManager.AddToRoleAsync(user, role);
-                    if (!roleResult.Succeeded)
-                    {
-                        _logger.LogError($"Failed to assign role {role}: {string.Join(", ", roleResult.Errors.Select(e => e.Description))}");
-                        // Clean up the created user since role assignment failed
-                        await _userManager.DeleteAsync(user);
-                        return Json(new { success = false, message = $"Failed to assign role: {role}", errors = roleResult.Errors.Select(e => e.Description) });
                     }
 
                     // Assign to Dynamic Role System
@@ -424,18 +385,33 @@ namespace LetsCheckIn.Controllers
                     return Json(new { success = false, message = "You don't have permission to edit this user" });
                 }
 
-                // Get user roles from both Identity and Dynamic Role systems
-                var identityRoles = await _userManager.GetRolesAsync(user);
+                // ✅ Only use Dynamic roles - remove Identity role dependencies
                 var dynamicRoles = await _context.DynamicUserRoles
-                    .Where(ur => ur.UserId == user.Id)
+                    .Where(ur => ur.UserId == user.Id && ur.IsActive) // ✅ Filter for active roles only
+                    .Join(_context.DynamicRoles,
+                        ur => ur.RoleId,
+                        r => r.RoleId,
+                        (ur, r) => r.RoleName)
+                    .Where(roleName => roleName != null) // ✅ Ensure role name is not null
+                    .ToListAsync();
+
+                // ✅ Enhanced logging for debugging role inconsistencies
+                _logger.LogInformation($"User {user.Email} role analysis:");
+                _logger.LogInformation($"  - Active dynamic roles: [{string.Join(", ", dynamicRoles)}]");
+                
+                // ✅ Check for any inactive dynamic role assignments for debugging
+                var inactiveDynamicRoles = await _context.DynamicUserRoles
+                    .Where(ur => ur.UserId == user.Id && !ur.IsActive)
                     .Join(_context.DynamicRoles,
                         ur => ur.RoleId,
                         r => r.RoleId,
                         (ur, r) => r.RoleName)
                     .ToListAsync();
-
-                var combinedRoles = identityRoles.Union(dynamicRoles).ToList();
-                _logger.LogInformation($"User roles - Identity: {string.Join(", ", identityRoles)}, Dynamic: {string.Join(", ", dynamicRoles)}");
+                
+                if (inactiveDynamicRoles.Any())
+                {
+                    _logger.LogWarning($"  - Inactive dynamic roles found: [{string.Join(", ", inactiveDynamicRoles)}]");
+                }
 
                 var model = new UserManagementViewModel
                 {
@@ -446,7 +422,7 @@ namespace LetsCheckIn.Controllers
                     UserName = user.UserName,
                     BranchId = user.Employee.BranchId,
                     BranchName = user.Employee.Branch?.BranchName ?? string.Empty,
-                    Roles = combinedRoles,
+                    Roles = dynamicRoles, // ✅ Use only dynamic roles
                     Status = user.Employee.Status
                 };
 
@@ -548,15 +524,20 @@ namespace LetsCheckIn.Controllers
                     _context.Employee.Update(user.Employee);
                     await _context.SaveChangesAsync();
 
-                    // Update roles
-                    var currentRoles = await _userManager.GetRolesAsync(user);
-                    var rolesToRemove = currentRoles.Except(model.Roles);
-                    var rolesToAdd = model.Roles.Except(currentRoles);
+                    // ✅ Update roles using only Dynamic role system
+                    var currentDynamicRoles = await _context.DynamicUserRoles
+                        .Where(ur => ur.UserId == user.Id && ur.IsActive)
+                        .Join(_context.DynamicRoles,
+                            ur => ur.RoleId,
+                            r => r.RoleId,
+                            (ur, r) => r.RoleName)
+                        .ToListAsync();
+
+                    var rolesToRemove = currentDynamicRoles.Except(model.Roles);
+                    var rolesToAdd = model.Roles.Except(currentDynamicRoles);
 
                     if (rolesToRemove.Any())
                     {
-                        await _userManager.RemoveFromRolesAsync(user, rolesToRemove);
-                        // Remove from Dynamic Role System
                         foreach (var role in rolesToRemove)
                         {
                             var dynamicRole = await _context.DynamicRoles.FirstOrDefaultAsync(r => r.RoleName == role);
@@ -569,8 +550,6 @@ namespace LetsCheckIn.Controllers
 
                     if (rolesToAdd.Any())
                     {
-                        await _userManager.AddToRolesAsync(user, rolesToAdd);
-                        // Add to Dynamic Role System
                         foreach (var role in rolesToAdd)
                         {
                             var dynamicRole = await _context.DynamicRoles.FirstOrDefaultAsync(r => r.RoleName == role);
@@ -629,20 +608,14 @@ namespace LetsCheckIn.Controllers
                     return Json(new { success = false, message = "You don't have permission to delete this user" });
                 }
 
-                // Remove user from all roles
-                var userRoles = await _userManager.GetRolesAsync(user);
-                if (userRoles.Any())
-                {
-                    await _userManager.RemoveFromRolesAsync(user, userRoles);
-                }
-
-                // Remove from Dynamic Role System
+                // ✅ Remove from Dynamic Role System only
                 var dynamicRoles = await _context.DynamicUserRoles
                     .Where(ur => ur.UserId == id)
                     .ToListAsync();
                 if (dynamicRoles.Any())
                 {
                     _context.DynamicUserRoles.RemoveRange(dynamicRoles);
+                    _logger.LogInformation($"Removed {dynamicRoles.Count} dynamic role assignments for user {user.Email}");
                 }
 
                 // Delete the employee record
@@ -668,6 +641,56 @@ namespace LetsCheckIn.Controllers
             }
         }
 
+        // ✅ Dynamic Roles Status Check - returns status of user's dynamic roles only
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SyncUserRoles([FromBody] string userId)
+        {
+            try
+            {
+                var currentUser = await _userManager.GetUserAsync(User);
+                if (currentUser == null) return Json(new { success = false, message = "User not authenticated" });
+
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null) return Json(new { success = false, message = "User not found" });
+
+                // ✅ Get active Dynamic roles
+                var activeDynamicRoles = await _context.DynamicUserRoles
+                    .Where(ur => ur.UserId == userId && ur.IsActive)
+                    .Join(_context.DynamicRoles,
+                        ur => ur.RoleId,
+                        r => r.RoleId,
+                        (ur, r) => new { r.RoleName, ur.AssignedDate, ur.AssignedBy })
+                    .ToListAsync();
+
+                // ✅ Get inactive Dynamic roles
+                var inactiveDynamicRoles = await _context.DynamicUserRoles
+                    .Where(ur => ur.UserId == userId && !ur.IsActive)
+                    .Join(_context.DynamicRoles,
+                        ur => ur.RoleId,
+                        r => r.RoleId,
+                        (ur, r) => new { r.RoleName, ur.AssignedDate, ur.AssignedBy })
+                    .ToListAsync();
+
+                _logger.LogInformation($"Dynamic role status for user {user.Email}:");
+                _logger.LogInformation($"  - Active roles: {activeDynamicRoles.Count}");
+                _logger.LogInformation($"  - Inactive roles: {inactiveDynamicRoles.Count}");
+
+                return Json(new { 
+                    success = true, 
+                    message = "Dynamic role status retrieved",
+                    activeDynamicRoles = activeDynamicRoles,
+                    inactiveDynamicRoles = inactiveDynamicRoles,
+                    totalActiveRoles = activeDynamicRoles.Count
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error getting dynamic role status: {ex.Message}");
+                return Json(new { success = false, message = "An error occurred while getting role status" });
+            }
+        }
+
         // GET: /UserManagement/GetRolesForBranch
         [HttpGet]
         public async Task<IActionResult> GetRolesForBranch(int branchId)
@@ -683,17 +706,11 @@ namespace LetsCheckIn.Controllers
                     return Json(new { success = false, message = "You don't have permission to access this branch" });
                 }
 
-                // Get dynamic roles for the branch
+                // ✅ Get only dynamic roles for the branch
                 var branchRoles = await _permissionService.GetRolesForBranchAsync(branchId);
-                var dynamicRoleNames = branchRoles.Select(r => r.RoleName).ToHashSet();
+                var dynamicRoleNames = branchRoles.Select(r => r.RoleName);
 
-                // Get all Identity roles
-                var identityRoles = await _roleManager.Roles.Select(r => r.Name).ToListAsync();
-                
-                // Combine both sets of roles
-                var allRoles = dynamicRoleNames.Union(identityRoles.Where(r => r != null));
-
-                var roles = allRoles.Select(r => new { value = r, text = r }).OrderBy(r => r.text).ToList();
+                var roles = dynamicRoleNames.Select(r => new { value = r, text = r }).OrderBy(r => r.text).ToList();
 
                 _logger.LogInformation($"Retrieved {roles.Count} roles for branch {branchId}");
                 

@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': token
+                    'X-CSRF-TOKEN': token
                 },
                 body: JSON.stringify(data)
             })
@@ -215,16 +215,35 @@ function closeLeaveTypeModal() {
 
 function loadLeaveTypes() {
     const branchId = document.getElementById('branchId').value;
+    console.log('Loading leave types for branchId:', branchId); // Debug log
+    
+    if (!branchId) {
+        console.error('Branch ID is missing');
+        showNotification('error', 'Branch ID is missing');
+        return;
+    }
+    
     fetch(`/Account/GetLeaveTypes?branchId=${branchId}`)
-        .then(response => response.json())
+        .then(response => {
+            console.log('Response status:', response.status); // Debug log
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            console.log('GetLeaveTypes response:', data); // Debug log
             if (data.success) {
                 // Update desktop view
                 const tbody = document.getElementById('leaveTypesTableBody');
                 // Update mobile view
                 const cardView = document.getElementById('leaveTypesCardView');
                 
-                if (data.data.length === 0) {
+                // Handle the case where data is wrapped in $values due to ReferenceHandler.Preserve
+                const leaveTypesArray = data.data.$values || data.data || [];
+                console.log('Leave types array:', leaveTypesArray); // Debug log
+                
+                if (leaveTypesArray.length === 0) {
                     const emptyState = `
                         <div class="p-6 text-center">
                             <svg class="h-12 w-12 text-[#a88641] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -243,7 +262,7 @@ function loadLeaveTypes() {
                 tbody.innerHTML = '';
                 cardView.innerHTML = '';
                 
-                data.data.forEach(leaveType => {
+                leaveTypesArray.forEach(leaveType => {
                     // Add desktop view row
                     const tr = document.createElement('tr');
                     tr.className = 'hover:bg-gray-50 transition-colors';
@@ -315,7 +334,8 @@ function loadLeaveTypes() {
             }
         })
         .catch(error => {
-            showNotification('error', 'An error occurred while loading leave types');
+            console.error('Error loading leave types:', error); // Debug log
+            showNotification('error', 'An error occurred while loading leave types: ' + error.message);
         });
 }
 
@@ -353,7 +373,7 @@ function confirmDeleteLeaveType() {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'RequestVerificationToken': token
+            'X-CSRF-TOKEN': token
         },
         body: JSON.stringify(leaveTypeId)
     })

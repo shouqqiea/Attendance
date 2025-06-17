@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using LetsCheckIn.Models.db;
+using LetsCheckIn.Helpers;
 
 namespace LetsCheckIn.Models
 {
@@ -18,11 +19,13 @@ namespace LetsCheckIn.Models
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly LetsCheckIn.Helpers.IDynamicPermissionService _permissionService;
 
-        public BranchAccessService(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
+        public BranchAccessService(ApplicationDbContext context, UserManager<ApplicationUser> userManager, LetsCheckIn.Helpers.IDynamicPermissionService permissionService)
         {
             _context = context;
             _userManager = userManager;
+            _permissionService = permissionService;
         }
 
         public async Task<bool> CanAccessBranchAsync(string userId, int branchId)
@@ -30,16 +33,18 @@ namespace LetsCheckIn.Models
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null) return false;
 
-            var userRoles = await _userManager.GetRolesAsync(user);
+            // ✅ Use Dynamic roles instead of Identity roles
+            var userRoles = await _permissionService.GetUserRolesAsync(userId);
+            var userRoleNames = userRoles.Select(r => r.RoleName).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             // SuperAdmin can access all branches if they're on the superadmin branch
-            if (userRoles.Contains("SuperAdmin"))
+            if (userRoleNames.Contains("SuperAdmin"))
             {
                 return await IsSuperAdminAsync(userId);
             }
 
             // Admin can access their own branch and create new branches
-            if (userRoles.Contains("Admin"))
+            if (userRoleNames.Contains("Admin"))
             {
                 var employee = await _context.Employee
                     .FirstOrDefaultAsync(e => e.UserId == userId);
@@ -67,8 +72,11 @@ namespace LetsCheckIn.Models
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null) return false;
 
-            var userRoles = await _userManager.GetRolesAsync(user);
-            if (!userRoles.Contains("SuperAdmin")) return false;
+            // ✅ Use Dynamic roles instead of Identity roles
+            var userRoles = await _permissionService.GetUserRolesAsync(userId);
+            var userRoleNames = userRoles.Select(r => r.RoleName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            
+            if (!userRoleNames.Contains("SuperAdmin")) return false;
 
             // Check if user is on the superadmin branch
             var employee = await _context.Employee
@@ -83,10 +91,12 @@ namespace LetsCheckIn.Models
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null) return new List<int>();
 
-            var userRoles = await _userManager.GetRolesAsync(user);
+            // ✅ Use Dynamic roles instead of Identity roles
+            var userRoles = await _permissionService.GetUserRolesAsync(userId);
+            var userRoleNames = userRoles.Select(r => r.RoleName).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             // SuperAdmin on superadmin branch can access all branches
-            if (userRoles.Contains("SuperAdmin") && await IsSuperAdminAsync(userId))
+            if (userRoleNames.Contains("SuperAdmin") && await IsSuperAdminAsync(userId))
             {
                 return await _context.Branch
                     .Where(b => b.DeletedDate == null)
@@ -95,7 +105,7 @@ namespace LetsCheckIn.Models
             }
 
             // Admin can access their own branch
-            if (userRoles.Contains("Admin"))
+            if (userRoleNames.Contains("Admin"))
             {
                 var employee = await _context.Employee
                     .FirstOrDefaultAsync(e => e.UserId == userId);
@@ -132,10 +142,12 @@ namespace LetsCheckIn.Models
             var assignerUser = await _userManager.FindByIdAsync(assignerUserId);
             if (assignerUser == null) return false;
 
-            var assignerRoles = await _userManager.GetRolesAsync(assignerUser);
+            // ✅ Use Dynamic roles instead of Identity roles
+            var assignerRoles = await _permissionService.GetUserRolesAsync(assignerUserId);
+            var assignerRoleNames = assignerRoles.Select(r => r.RoleName).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             // SuperAdmin can assign any role except SuperAdmin to non-superadmin branches
-            if (assignerRoles.Contains("SuperAdmin") && await IsSuperAdminAsync(assignerUserId))
+            if (assignerRoleNames.Contains("SuperAdmin") && await IsSuperAdminAsync(assignerUserId))
             {
                 if (targetRole == "SuperAdmin")
                 {
@@ -147,7 +159,7 @@ namespace LetsCheckIn.Models
             }
 
             // Admin can assign Employee and Manager roles to their own branch only
-            if (assignerRoles.Contains("Admin"))
+            if (assignerRoleNames.Contains("Admin"))
             {
                 var assignerEmployee = await _context.Employee
                     .FirstOrDefaultAsync(e => e.UserId == assignerUserId);
@@ -166,16 +178,18 @@ namespace LetsCheckIn.Models
             var user = await _userManager.FindByIdAsync(userId);
             if (user == null) return false;
 
-            var userRoles = await _userManager.GetRolesAsync(user);
+            // ✅ Use Dynamic roles instead of Identity roles
+            var userRoles = await _permissionService.GetUserRolesAsync(userId);
+            var userRoleNames = userRoles.Select(r => r.RoleName).ToHashSet(StringComparer.OrdinalIgnoreCase);
 
             // SuperAdmin can always create branches
-            if (userRoles.Contains("SuperAdmin") && await IsSuperAdminAsync(userId))
+            if (userRoleNames.Contains("SuperAdmin") && await IsSuperAdminAsync(userId))
             {
                 return true;
             }
 
             // Admin can create branches
-            if (userRoles.Contains("Admin"))
+            if (userRoleNames.Contains("Admin"))
             {
                 return true;
             }

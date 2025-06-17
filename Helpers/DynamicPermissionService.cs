@@ -194,6 +194,22 @@ namespace LetsCheckIn.Helpers
         {
             try
             {
+                // ✅ Verify role exists and is active
+                var role = await _context.DynamicRoles
+                    .FirstOrDefaultAsync(r => r.RoleId == roleId && r.IsActive && r.DeletedDate == null);
+                
+                if (role == null)
+                {
+                    return false;
+                }
+
+                // ✅ Verify user exists
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
+                {
+                    return false;
+                }
+
                 var existingAssignment = await _context.DynamicUserRoles
                     .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId);
 
@@ -232,8 +248,24 @@ namespace LetsCheckIn.Helpers
         {
             try
             {
+                // ✅ Verify role exists
+                var role = await _context.DynamicRoles
+                    .FirstOrDefaultAsync(r => r.RoleId == roleId);
+                
+                if (role == null)
+                {
+                    return false;
+                }
+
+                // ✅ Verify user exists
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
+                {
+                    return false;
+                }
+
                 var userRole = await _context.DynamicUserRoles
-                    .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId);
+                    .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId && ur.IsActive);
 
                 if (userRole != null)
                 {
@@ -610,28 +642,26 @@ namespace LetsCheckIn.Helpers
 
         public async Task MigrateExistingUsersAsync()
         {
+            // ✅ Ensure all users without dynamic roles get default Employee role
             var allUsers = await _userManager.Users
                 .Include(u => u.Employee)
                 .ToListAsync();
 
             foreach (var user in allUsers)
             {
-                var identityRoles = await _userManager.GetRolesAsync(user);
                 var existingDynamicRoles = await _context.DynamicUserRoles
                     .Where(ur => ur.UserId == user.Id && ur.IsActive)
                     .ToListAsync();
 
-                if (identityRoles.Any() && !existingDynamicRoles.Any())
+                // If user has no dynamic roles, assign default Employee role
+                if (!existingDynamicRoles.Any())
                 {
-                    foreach (var roleName in identityRoles)
+                    var employeeRole = await _context.DynamicRoles
+                        .FirstOrDefaultAsync(r => r.RoleName == "Employee");
+                    
+                    if (employeeRole != null)
                     {
-                        var dynamicRole = await _context.DynamicRoles
-                            .FirstOrDefaultAsync(r => r.RoleName == roleName);
-                        
-                        if (dynamicRole != null)
-                        {
-                            await AssignRoleToUserAsync(user.Id, dynamicRole.RoleId, "Migration");
-                        }
+                        await AssignRoleToUserAsync(user.Id, employeeRole.RoleId, "Migration");
                     }
                 }
             }

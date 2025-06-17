@@ -9,20 +9,12 @@ public static class DataSeeder
 {
     public static async Task SeedRolesAndSuperAdminAsync(IServiceProvider serviceProvider)
     {
-        var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        // ✅ Removed RoleManager dependency - using only Dynamic roles system
         var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
         var dbContext = serviceProvider.GetRequiredService<ApplicationDbContext>();
         var permissionService = serviceProvider.GetRequiredService<LetsCheckIn.Helpers.IDynamicPermissionService>();
 
-        string[] roles = { "SuperAdmin", "Admin", "Manager", "Employee" };
-
-        foreach (var role in roles)
-        {
-            if (!await roleManager.RoleExistsAsync(role))
-                await roleManager.CreateAsync(new IdentityRole { Name = role });
-        }
-
-        // Initialize dynamic permissions and roles
+        // ✅ Initialize dynamic permissions and roles only
         await permissionService.SeedDefaultPermissionsAsync();
         await permissionService.MigrateExistingRolesAsync();
         await permissionService.MigrateExistingUsersAsync();
@@ -88,9 +80,7 @@ public static class DataSeeder
 
             if (result.Succeeded)
             {
-                await userManager.AddToRoleAsync(superAdminUser, "SuperAdmin");
-                
-                // Create Employee record for SuperAdmin
+                // ✅ Create Employee record for SuperAdmin
                 var superAdminEmployee = new Employee
                 {
                     UserId = superAdminUser.Id,
@@ -104,7 +94,7 @@ public static class DataSeeder
                 dbContext.Employee.Add(superAdminEmployee);
                 await dbContext.SaveChangesAsync();
 
-                // Assign SuperAdmin role in dynamic system
+                // ✅ Assign SuperAdmin role in dynamic system only
                 var superAdminRole = await dbContext.DynamicRoles.FirstOrDefaultAsync(r => r.RoleName == "SuperAdmin");
                 if (superAdminRole != null)
                 {

@@ -80,7 +80,7 @@
                             </a>
                         </li>
                     }
-                    @if (await Html.HasAnyPermission("leave.view", "leave.approve"))
+                    @if (await Html.HasPermission("leave.approve"))
                     {
                         <li>
                             <a href="/LeaveManagement/LeaveApproval" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black  transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveApproval") ? "active" : "")">
@@ -191,7 +191,7 @@
                             </a>
                         </li>
                     }
-                    @if (await Html.HasAnyPermission("leave.view", "leave.approve"))
+                    @if (await Html.HasPermission("leave.approve"))
                     {
                         <li>
                             <a href="/LeaveManagement/LeaveApproval" class="flex items-center p-2 rounded-md hover:bg-[#916f34] hover:text-black  transition-colors @(Context.Request.Path.StartsWithSegments("/LeaveManagement/LeaveApproval") ? "active" : "")">

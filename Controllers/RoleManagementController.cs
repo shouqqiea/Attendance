@@ -9,7 +9,8 @@ using LetsCheckIn.Helpers;
 
 namespace LetsCheckIn.Controllers
 {
-    [Authorize(Roles = "SuperAdmin")]
+    // ✅ Use Dynamic role authorization instead of ASP.NET Identity
+    [DynamicRoleAuthorize("SuperAdmin")]
     public class RoleManagementController : Controller
     {
         private readonly ApplicationDbContext _context;

@@ -12,10 +12,13 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.IO;
 using Microsoft.Extensions.Logging;
+using LetsCheckIn.Helpers;
 
 namespace LetsCheckIn.Controllers
 {
-    [Authorize(Roles = "SuperAdmin,SUPERADMIN,Admin,Manager")]
+    // ✅ Use permission-based authorization instead of hardcoded role names
+    // This allows any user with leave management permissions to access these actions
+    [DynamicPermissionAuthorize("leave.view")]
     public class LeaveManagementController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -350,7 +353,7 @@ namespace LetsCheckIn.Controllers
             }
         }
 
-        [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+        [DynamicPermissionAuthorize("leave.approve")]
         public async Task<IActionResult> LeaveApproval()
         {
             try
@@ -408,7 +411,7 @@ namespace LetsCheckIn.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+        [DynamicPermissionAuthorize("leave.approve")]
         public async Task<IActionResult> Approve([FromBody] int id)
         {
             try
@@ -451,7 +454,7 @@ namespace LetsCheckIn.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles = "SuperAdmin,Admin,Manager")]
+        [DynamicPermissionAuthorize("leave.reject")]
         public async Task<IActionResult> Reject([FromBody] RejectLeaveRequestModel model)
         {
             try
