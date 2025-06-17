@@ -122,10 +122,12 @@ namespace LetsCheckIn.Controllers
                     })
                 .ToListAsync();
 
-                // Get user's leave requests with leave type details
-            var leaveRequests = await _context.LeaveRequests
+                                // Get user's leave requests with leave type details
+                var leaveRequests = await _context.LeaveRequests
                 .Include(lr => lr.LeaveType)
                     .Include(lr => lr.Status)
+                    .Include(lr => lr.ActionPerformer)
+                    .ThenInclude(ap => ap.Employee)
                 .Where(lr => lr.EmployeeId == employee.EmployeeId)
                 .OrderByDescending(lr => lr.SubmissionDate)
                     .Select(lr => new LeaveRequestViewModel(lr.LeaveType.Name, lr.LeaveReason ?? "No reason provided")
@@ -136,7 +138,11 @@ namespace LetsCheckIn.Controllers
                         Status = lr.Status.StatusName,
                         SubmittedOn = lr.SubmissionDate,
                         AttachmentFileName = lr.AttachmentPath,
-                        RejectionReason = lr.RejectedReason
+                        RejectionReason = lr.RejectedReason,
+                        ActionPerformedBy = lr.ActionPerformer != null && lr.ActionPerformer.Employee != null 
+                            ? $"{lr.ActionPerformer.Employee.FirstName} {lr.ActionPerformer.Employee.LastName}"
+                            : null,
+                        ActionPerformedOn = lr.ActionPerformedOn
                     })
                     .ToListAsync();
 
@@ -376,6 +382,8 @@ namespace LetsCheckIn.Controllers
                     .Include(lr => lr.LeaveType)
                     .Include(lr => lr.Status)
                     .Include(lr => lr.Employee)
+                    .Include(lr => lr.ActionPerformer)
+                    .ThenInclude(ap => ap.Employee)
                     .Where(lr => accessibleBranches.Contains(lr.Employee.BranchId))
                     .OrderByDescending(lr => lr.SubmissionDate)
                     .Select(lr => new LeaveRequestViewModel(lr.LeaveType.Name, lr.LeaveReason ?? "No reason provided")
@@ -388,7 +396,11 @@ namespace LetsCheckIn.Controllers
                         AttachmentFileName = lr.AttachmentPath,
                         RejectionReason = lr.RejectedReason,
                         EmployeeName = $"{lr.Employee.FirstName} {lr.Employee.LastName}",
-                        EmployeeEmail = lr.Employee.Email
+                        EmployeeEmail = lr.Employee.Email,
+                        ActionPerformedBy = lr.ActionPerformer != null && lr.ActionPerformer.Employee != null 
+                            ? $"{lr.ActionPerformer.Employee.FirstName} {lr.ActionPerformer.Employee.LastName}"
+                            : null,
+                        ActionPerformedOn = lr.ActionPerformedOn
                     })
                     .ToListAsync();
 
@@ -431,6 +443,8 @@ namespace LetsCheckIn.Controllers
                     .Include(lr => lr.LeaveType)
                     .Include(lr => lr.Status)
                     .Include(lr => lr.Employee)
+                    .Include(lr => lr.ActionPerformer)
+                    .ThenInclude(ap => ap.Employee)
                     .Where(lr => accessibleBranches.Contains(lr.Employee.BranchId));
 
                 // Apply filters
@@ -480,7 +494,12 @@ namespace LetsCheckIn.Controllers
                         Reason = lr.LeaveReason ?? "No reason provided",
                         SubmittedOn = lr.SubmissionDate,
                         AttachmentFileName = lr.AttachmentPath,
-                        RejectionReason = lr.RejectedReason
+                        RejectionReason = lr.RejectedReason,
+                        // Action tracking information
+                        ActionPerformedBy = lr.ActionPerformer != null && lr.ActionPerformer.Employee != null 
+                            ? $"{lr.ActionPerformer.Employee.FirstName} {lr.ActionPerformer.Employee.LastName}"
+                            : null,
+                        ActionPerformedOn = lr.ActionPerformedOn
                     })
                     .ToListAsync();
 
@@ -540,6 +559,8 @@ namespace LetsCheckIn.Controllers
                     .Include(lr => lr.LeaveType)
                     .Include(lr => lr.Status)
                     .Include(lr => lr.Employee)
+                    .Include(lr => lr.ActionPerformer)
+                    .ThenInclude(ap => ap.Employee)
                     .Where(lr => accessibleBranches.Contains(lr.Employee.BranchId));
 
                 // Apply same filters as LeaveData action
@@ -589,7 +610,12 @@ namespace LetsCheckIn.Controllers
                         Reason = lr.LeaveReason ?? "No reason provided",
                         SubmittedOn = lr.SubmissionDate,
                         AttachmentFileName = lr.AttachmentPath,
-                        RejectionReason = lr.RejectedReason
+                        RejectionReason = lr.RejectedReason,
+                        // Action tracking information
+                        ActionPerformedBy = lr.ActionPerformer != null && lr.ActionPerformer.Employee != null 
+                            ? $"{lr.ActionPerformer.Employee.FirstName} {lr.ActionPerformer.Employee.LastName}"
+                            : null,
+                        ActionPerformedOn = lr.ActionPerformedOn
                     })
                     .ToListAsync();
 
@@ -597,11 +623,12 @@ namespace LetsCheckIn.Controllers
                 using var workbook = new XLWorkbook();
                 var worksheet = workbook.Worksheets.Add("Leave Data");
 
-                // Add headers with styling
+                // Add headers with styling including action tracking
                 var headers = new[]
                 {
                     "Employee Name", "Email", "Leave Type", "Start Date", "End Date",
-                    "Duration (Days)", "Status", "Reason", "Submitted On", "Has Attachment", "Rejection Reason"
+                    "Duration (Days)", "Status", "Reason", "Submitted On", "Has Attachment", 
+                    "Rejection Reason", "Action Performed By", "Action Date"
                 };
 
                 for (int col = 1; col <= headers.Length; col++)
@@ -630,6 +657,9 @@ namespace LetsCheckIn.Controllers
                     worksheet.Cell(row, 9).Value = request.SubmittedOn.ToString("yyyy-MM-dd HH:mm");
                     worksheet.Cell(row, 10).Value = !string.IsNullOrEmpty(request.AttachmentFileName) ? "Yes" : "No";
                     worksheet.Cell(row, 11).Value = request.RejectionReason ?? "";
+                    // Add action tracking columns
+                    worksheet.Cell(row, 12).Value = request.ActionPerformedBy ?? "";
+                    worksheet.Cell(row, 13).Value = request.ActionPerformedOn?.ToString("yyyy-MM-dd HH:mm") ?? "";
                 }
 
                 // Auto-fit columns for better appearance
@@ -679,6 +709,8 @@ namespace LetsCheckIn.Controllers
                     .Include(lr => lr.LeaveType)
                     .Include(lr => lr.Status)
                     .Include(lr => lr.Employee)
+                    .Include(lr => lr.ActionPerformer)
+                    .ThenInclude(ap => ap.Employee)
                     .Where(lr => accessibleBranches.Contains(lr.Employee.BranchId));
 
                 // Apply same filters as LeaveData action
@@ -728,28 +760,37 @@ namespace LetsCheckIn.Controllers
                         Reason = lr.LeaveReason ?? "No reason provided",
                         SubmittedOn = lr.SubmissionDate,
                         AttachmentFileName = lr.AttachmentPath,
-                        RejectionReason = lr.RejectedReason
+                        RejectionReason = lr.RejectedReason,
+                        // Action tracking information
+                        ActionPerformedBy = lr.ActionPerformer != null && lr.ActionPerformer.Employee != null 
+                            ? $"{lr.ActionPerformer.Employee.FirstName} {lr.ActionPerformer.Employee.LastName}"
+                            : null,
+                        ActionPerformedOn = lr.ActionPerformedOn
                     })
                     .ToListAsync();
 
-                // Build CSV content
-                var csvBuilder = new StringBuilder();
+                // Create CSV content with action tracking columns
+                var csv = new StringBuilder();
                 
-                // Add header row
-                csvBuilder.AppendLine("Employee Name,Email,Leave Type,Start Date,End Date,Duration (Days),Status,Reason,Submitted On,Has Attachment,Rejection Reason");
+                // Add header with action tracking
+                csv.AppendLine("Employee Name,Email,Leave Type,Start Date,End Date,Duration (Days),Status,Reason,Submitted On,Has Attachment,Rejection Reason,Action Performed By,Action Date");
 
                 // Add data rows
                 foreach (var request in leaveRequests)
                 {
-                    // Escape commas and quotes in CSV fields
-                    var employeeName = EscapeCsvField(request.EmployeeName);
-                    var email = EscapeCsvField(request.EmployeeEmail);
-                    var leaveTypeField = EscapeCsvField(request.LeaveType);
-                    var reason = EscapeCsvField(request.Reason);
-                    var hasAttachment = !string.IsNullOrEmpty(request.AttachmentFileName) ? "Yes" : "No";
-                    var rejectionReason = EscapeCsvField(request.RejectionReason ?? "");
-
-                    csvBuilder.AppendLine($"{employeeName},{email},{leaveTypeField},{request.StartDate:yyyy-MM-dd},{request.EndDate:yyyy-MM-dd},{request.Duration},{request.Status},{reason},{request.SubmittedOn:yyyy-MM-dd HH:mm},{hasAttachment},{rejectionReason}");
+                    csv.AppendLine($"{EscapeCsvField(request.EmployeeName)}," +
+                                 $"{EscapeCsvField(request.EmployeeEmail)}," +
+                                 $"{EscapeCsvField(request.LeaveType)}," +
+                                 $"{EscapeCsvField(request.StartDate.ToString("yyyy-MM-dd"))}," +
+                                 $"{EscapeCsvField(request.EndDate.ToString("yyyy-MM-dd"))}," +
+                                 $"{request.Duration}," +
+                                 $"{EscapeCsvField(request.Status)}," +
+                                 $"{EscapeCsvField(request.Reason)}," +
+                                 $"{EscapeCsvField(request.SubmittedOn.ToString("yyyy-MM-dd HH:mm"))}," +
+                                 $"{(!string.IsNullOrEmpty(request.AttachmentFileName) ? "Yes" : "No")}," +
+                                 $"{EscapeCsvField(request.RejectionReason ?? "")}," +
+                                 $"{EscapeCsvField(request.ActionPerformedBy ?? "")}," +
+                                 $"{EscapeCsvField(request.ActionPerformedOn?.ToString("yyyy-MM-dd HH:mm") ?? "")}");
                 }
 
                 // Generate file name with timestamp
@@ -758,7 +799,7 @@ namespace LetsCheckIn.Controllers
                 _logger.LogInformation($"Exporting {leaveRequests.Count} leave records to CSV for user {user.Email}");
 
                 // Return CSV file
-                var fileBytes = Encoding.UTF8.GetBytes(csvBuilder.ToString());
+                var fileBytes = Encoding.UTF8.GetBytes(csv.ToString());
                 return File(fileBytes, "text/csv", fileName);
             }
             catch (Exception ex)
@@ -802,7 +843,7 @@ namespace LetsCheckIn.Controllers
                     .Include(lr => lr.LeaveType)
                     .FirstOrDefaultAsync(lr => lr.LeaveRequestId == id);
 
-            if (leaveRequest == null)
+                if (leaveRequest == null)
                 {
                     _logger.LogWarning($"Leave request with ID {id} not found");
                     return Json(new { success = false, message = "Leave request not found." });
@@ -816,9 +857,14 @@ namespace LetsCheckIn.Controllers
 
                 var approvedStatus = await GetStatusTypeByNameAsync("approved");
                 leaveRequest.StatusId = approvedStatus.StatusId;
-            await _context.SaveChangesAsync();
+                
+                // Track who approved and when
+                leaveRequest.ActionPerformedBy = currentUser.Id;
+                leaveRequest.ActionPerformedOn = DateTime.Now;
+                
+                await _context.SaveChangesAsync();
 
-                _logger.LogInformation($"Successfully approved leave request with ID: {id}");
+                _logger.LogInformation($"Successfully approved leave request with ID: {id} by user {currentUser.Id}");
                 return Json(new { success = true, message = "Leave request approved successfully." });
             }
             catch (Exception ex)
@@ -862,6 +908,11 @@ namespace LetsCheckIn.Controllers
                 var rejectedStatus = await GetStatusTypeByNameAsync("rejected");
                 leaveRequest.StatusId = rejectedStatus.StatusId;
                 leaveRequest.RejectedReason = model.RejectionReason;
+                
+                // Track who rejected and when
+                leaveRequest.ActionPerformedBy = currentUser.Id;
+                leaveRequest.ActionPerformedOn = DateTime.Now;
+                
                 await _context.SaveChangesAsync();
 
                 return Json(new { success = true, message = "Leave request rejected successfully." });
@@ -1094,6 +1145,10 @@ namespace LetsCheckIn.Controllers
 
         public DateTime SubmittedOn { get; set; } = DateTime.Now;
 
+        // Action tracking fields
+        public string? ActionPerformedBy { get; set; } // Name of the person who approved/rejected
+        public DateTime? ActionPerformedOn { get; set; } // When the approval/rejection was done
+
         // Make these fields optional since they're populated server-side
         public string? EmployeeName { get; set; }
         public string? EmployeeEmail { get; set; }
@@ -1137,5 +1192,9 @@ namespace LetsCheckIn.Controllers
         public DateTime SubmittedOn { get; set; }
         public string? AttachmentFileName { get; set; }
         public string? RejectionReason { get; set; }
+        
+        // Action tracking fields
+        public string? ActionPerformedBy { get; set; } // Name of the person who approved/rejected
+        public DateTime? ActionPerformedOn { get; set; } // When the approval/rejection was done
     }
 }

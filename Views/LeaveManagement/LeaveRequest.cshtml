@@ -585,6 +585,31 @@
                                                         <p class="text-sm text-red-600 leading-relaxed">@request.RejectionReason</p>
                                                     </div>
                                                 }
+
+                                                <!-- Action Tracking Information -->
+                                                @if (!string.IsNullOrEmpty(request.ActionPerformedBy) && request.ActionPerformedOn.HasValue)
+                                                {
+                                                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                                        <div class="flex items-center space-x-2">
+                                                            <svg class="h-4 w-4 @(request.Status.ToLower() == "approved" ? "text-green-600" : "text-red-600")" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                @if (request.Status.ToLower() == "approved")
+                                                                {
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                                }
+                                                            </svg>
+                                                            <p class="text-sm font-medium text-gray-700">
+                                                                @(request.Status.ToLower() == "approved" ? "Approved" : request.Status.ToLower() == "rejected" ? "Rejected" : "Processed") by @request.ActionPerformedBy
+                                                            </p>
+                                                        </div>
+                                                        <p class="text-xs text-gray-500 mt-1 ml-6">
+                                                            @request.ActionPerformedOn?.ToString("MMM dd, yyyy 'at' hh:mm tt")
+                                                        </p>
+                                                    </div>
+                                                }
                                                 
                                                 <!-- Metadata -->
                                                 <div class="flex flex-wrap items-center gap-4 text-xs text-gray-500">

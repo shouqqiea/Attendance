@@ -35,6 +35,11 @@ namespace LetsCheckIn.Models.db
 
         public string? AttachmentPath { get; set; }
 
+        // Action tracking fields - who approved/rejected and when
+        public string? ActionPerformedBy { get; set; } // UserId of the person who approved/rejected
+        
+        public DateTime? ActionPerformedOn { get; set; } // When the approval/rejection was done
+
         // Navigation properties
         [ForeignKey("EmployeeId")]
         public virtual Employee Employee { get; set; }
@@ -44,5 +49,9 @@ namespace LetsCheckIn.Models.db
 
         [ForeignKey("StatusId")]
         public virtual StatusType Status { get; set; }
+
+        // Navigation property for action performer
+        [ForeignKey("ActionPerformedBy")]
+        public virtual ApplicationUser? ActionPerformer { get; set; }
     }
 }
