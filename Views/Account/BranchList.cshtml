@@ -1,5 +1,6 @@
 @using LetsCheckIn.Models.db
-@model IEnumerable<Branch>
+@using LetsCheckIn.Models
+@model BranchHierarchyViewModel
 @{
     ViewBag.Title = "Branch Management";
     Layout = "~/Views/Shared/_AuthenticatedLayout.cshtml";
@@ -62,8 +63,26 @@
 <div class="p-4 sm:p-6 max-w-7xl mx-auto">
     <!-- Header Section -->
     <div class="mb-6">
-        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Branch Management</h1>
-        <p class="text-sm sm:text-base text-gray-600">Manage your organization's branches and their settings</p>
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Branch Management</h1>
+                <p class="text-sm sm:text-base text-gray-600">Manage your organization's branch hierarchy and settings</p>
+            </div>
+            <div class="flex items-center space-x-2">
+                <button onclick="expandAllBranches()" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    Expand All
+                </button>
+                <button onclick="collapseAllBranches()" class="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+                    <svg class="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 12H6" />
+                    </svg>
+                    Collapse All
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Actions Section -->
@@ -96,12 +115,12 @@
         </div>
     </div>
 
-    <!-- Branches Grid -->
+    <!-- Branches Hierarchy -->
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-            <!-- Mobile View (Card Layout) -->
+            <!-- Mobile View (Card Layout with Hierarchy) -->
             <div class="sm:hidden">
-                @if (!Model.Any())
+                @if (!Model.BranchTree.Any())
                 {
                     <div class="p-6 text-center">
                         <svg class="h-12 w-12 text-[#a88641] mx-auto mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -111,77 +130,119 @@
                         <p class="text-sm text-gray-400">Add a new branch to get started</p>
                     </div>
                 }
-                @foreach (var branch in Model)
-                {
-                    <div class="p-4 border-b border-gray-200">
-                        <div class="flex justify-between items-start mb-3">
-                            <div>
-                                <h3 class="text-lg font-medium text-gray-900">@branch.BranchName</h3>
-                                <p class="text-sm text-gray-500">Created @branch.CreatedDate.ToString("MMM dd, yyyy")</p>
-                            </div>
-                        </div>
-                        <div class="space-y-2">
-                            <div>
-                                <p class="text-sm font-medium text-gray-500">Admin</p>
-                                <p class="text-sm text-gray-900">@(branch.Admin?.Name ?? "-")</p>
-                                <p class="text-sm text-gray-500">@(branch.Admin?.Email ?? "-")</p>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-gray-500 mb-1">Features</p>
-                                <div class="flex flex-wrap gap-2">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @(branch.BranchSetup?.EnableLocation == true ? "bg-[#a88641] bg-opacity-10 text-[#916f34]" : "bg-red-100 text-red-800")">
-                                        @(branch.BranchSetup?.EnableLocation == true ? "✓" : "✕") Location
-                                    </span>
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @(branch.BranchSetup?.EnableNetwork == true ? "bg-[#a88641] bg-opacity-10 text-[#916f34]" : "bg-red-100 text-red-800")">
-                                        @(branch.BranchSetup?.EnableNetwork == true ? "✓" : "✕") Network
-                                    </span>
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @(branch.BranchSetup?.EnableBiometric == true ? "bg-[#a88641] bg-opacity-10 text-[#916f34]" : "bg-red-100 text-red-800")">
-                                        @(branch.BranchSetup?.EnableBiometric == true ? "✓" : "✕") Face
-                                    </span>
+                @{
+                    void RenderMobileBranchCard(BranchHierarchyItem branch)
+                    {
+                        var indentClass = branch.Level > 0 ? $"ml-{Math.Min(branch.Level * 4, 16)}" : "";
+                        var branchTypeIcon = branch.BranchType == 1 ? "🏢" : "🏪";
+                        var branchTypeClass = branch.BranchType == 1 ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800";
+                        
+                        <div class="@indentClass border-l-2 @(branch.Level > 0 ? "border-gray-200 ml-4" : "border-transparent")">
+                            <div class="p-4 border-b border-gray-200" data-branch-id="@branch.BranchId" data-level="@branch.Level">
+                                <!-- Hierarchy Indicators -->
+                                @if (branch.Level > 0)
+                                {
+                                    <div class="flex items-center mb-2">
+                                        @for (int i = 1; i < branch.Level; i++)
+                                        {
+                                            <div class="w-4 h-px bg-gray-300 mr-2"></div>
+                                        }
+                                        <div class="w-3 h-3 border-l-2 border-b-2 border-gray-300 mr-2"></div>
+                                        <div class="text-xs text-gray-500">Child of: @branch.ParentBranchName</div>
+                                    </div>
+                                }
+                                
+                                <div class="flex justify-between items-start mb-3">
+                                    <div class="flex items-start">
+                                        @if (branch.Children.Any())
+                                        {
+                                            <button onclick="toggleBranchMobile(@branch.BranchId)" class="mr-2 mt-1 text-gray-400 hover:text-gray-600">
+                                                <svg class="h-4 w-4 transform transition-transform" id="toggle-icon-mobile-@branch.BranchId" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </button>
+                                        }
+                                        <div>
+                                            <h3 class="text-lg font-medium text-gray-900 flex items-center">
+                                                <span class="mr-2">@branchTypeIcon</span>
+                                                @branch.BranchName
+                                            </h3>
+                                            <div class="flex items-center mt-1">
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium @branchTypeClass mr-2">
+                                                    @branch.BranchTypeName
+                                                </span>
+                                                @if (branch.IsSuperAdminBranch)
+                                                {
+                                                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                                        Super Admin
+                                                    </span>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <div class="grid grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <p class="text-gray-500">Employees</p>
+                                            <p class="font-medium">@branch.EmployeeCount</p>
+                                        </div>
+                                        <div>
+                                            <p class="text-gray-500">Sub-branches</p>
+                                            <p class="font-medium">@branch.ChildBranchCount</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex gap-2 pt-2">
+                                        <a href="/Account/UpdateBranch/@branch.BranchId" 
+                                           class="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-[#a88641] text-[#a88641] text-sm font-medium rounded-md hover:bg-[#a88641] hover:text-white transition-colors">
+                                            <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                            Edit
+                                        </a>
+                                        <a href="/Account/ManageBranch/@branch.BranchId" 
+                                           class="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-[#a88641] text-[#a88641] text-sm font-medium rounded-md hover:bg-[#a88641] hover:text-white transition-colors">
+                                            <svg class="h-4 w-4 mr-1.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            Manage
+                                        </a>
+                                    </div>
+                                </div>
+                                
+                                <!-- Child branches container -->
+                                <div id="children-mobile-@branch.BranchId" class="hidden mt-4">
+                                    @foreach (var child in branch.Children)
+                                    {
+                                        { RenderMobileBranchCard(child); }
+                                    }
                                 </div>
                             </div>
-                            <div class="flex gap-2 pt-2">
-                                <a href="/Account/UpdateBranch/@branch.BranchId" 
-                                   class="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-[#a88641] text-[#a88641] text-sm font-medium rounded-md hover:bg-[#a88641] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#a88641] focus:ring-offset-2 transition-colors">
-                                    <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                    </svg>
-                                    Edit
-                                </a>
-                                <a href="/Account/ManageBranch/@branch.BranchId" 
-                                   class="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-[#a88641] text-[#a88641] text-sm font-medium rounded-md hover:bg-[#a88641] hover:text-white focus:outline-none focus:ring-2 focus:ring-[#a88641] focus:ring-offset-2 transition-colors">
-                                    <svg class="h-4 w-4 mr-1.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                    </svg>
-                                    Manage
-                                </a>
-                                <button type="button" 
-                                        onclick="showDeleteModal(@branch.BranchId, '@branch.BranchName')"
-                                        class="flex-1 inline-flex items-center justify-center px-3 py-1.5 border border-red-300 text-red-700 text-sm font-medium rounded-md hover:text-red-500 hover:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors">
-                                    <svg class="h-4 w-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                    Delete
-                                </button>
-                            </div>
                         </div>
-                    </div>
+                    }
+                }
+                
+                @foreach (var branch in Model.BranchTree)
+                {
+                    { RenderMobileBranchCard(branch); }
                 }
             </div>
 
-            <!-- Desktop View (Table Layout) -->
+            <!-- Desktop View (Tree Table Layout) -->
             <table class="hidden sm:table min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch Details</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Admin Information</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Features</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Branch Hierarchy</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type & Info</th>
+                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statistics</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
-                    @if (!Model.Any())
+                    @if (!Model.BranchTree.Any())
                     {
                         <tr>
                             <td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500">
@@ -195,51 +256,117 @@
                             </td>
                         </tr>
                     }
-                    @foreach (var branch in Model)
+                    @{
+                        void RenderBranchRow(BranchHierarchyItem branch)
+                        {
+                            var branchTypeIcon = branch.BranchType == 1 ? "🏢" : "🏪";
+                            var branchTypeClass = branch.BranchType == 1 ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800";
+                            var indentStyle = $"padding-left: {branch.Level * 2}rem;";
+                            
+                            <tr class="hover:bg-gray-50 transition-colors branch-row" data-branch-id="@branch.BranchId" data-level="@branch.Level">
+                                <td class="px-6 py-4" style="@indentStyle">
+                                    <div class="flex items-center">
+                                        @if (branch.Children.Any())
+                                        {
+                                            <button onclick="toggleBranch(@branch.BranchId)" class="mr-3 text-gray-400 hover:text-gray-600 transition-colors">
+                                                <svg class="h-4 w-4 transform transition-transform" id="toggle-icon-@branch.BranchId" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                                </svg>
+                                            </button>
+                                        }
+                                        else if (branch.Level > 0)
+                                        {
+                                            <div class="w-7 mr-3 flex justify-center">
+                                                <div class="w-px h-4 bg-gray-300"></div>
+                                            </div>
+                                        }
+                                        
+                                        <div class="flex items-center">
+                                            <span class="text-lg mr-3">@branchTypeIcon</span>
+                                            <div>
+                                                <div class="text-sm font-medium text-gray-900">@branch.BranchName</div>
+                                                @if (!string.IsNullOrEmpty(branch.HierarchyPath) && branch.Level > 0)
+                                                {
+                                                    <div class="text-xs text-gray-500">@branch.HierarchyPath</div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-wrap gap-2">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @branchTypeClass">
+                                            @branch.BranchTypeName
+                                        </span>
+                                        @if (branch.IsSuperAdminBranch)
+                                        {
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                                Super Admin
+                                            </span>
+                                        }
+                                        @if (branch.IsRootBranch)
+                                        {
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                                Root Level
+                                            </span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="grid grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <span class="text-gray-500">Employees:</span>
+                                            <span class="font-medium ml-1">@branch.EmployeeCount</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-gray-500">Sub-branches:</span>
+                                            <span class="font-medium ml-1">@branch.ChildBranchCount</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center space-x-3">
+                                        <a href="/Account/UpdateBranch/@branch.BranchId" class="text-[#a88641] hover:text-[#916f34]" title="Edit Branch">
+                                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                        </a>
+                                        <a href="/Account/ManageBranch/@branch.BranchId" class="text-[#a88641] hover:text-[#916f34]" title="Manage Branch">
+                                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                        </a>
+                                        @if (branch.CanHaveChildren)
+                                        {
+                                            <a href="/Account/CreateBranch?parentId=@branch.BranchId" class="text-green-600 hover:text-green-800" title="Add Child Branch">
+                                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                                </svg>
+                                            </a>
+                                        }
+                                        @if (!branch.IsSuperAdminBranch)
+                                        {
+                                            <button onclick="showDeleteModal(@branch.BranchId, '@branch.BranchName')" class="text-red-600 hover:text-red-800" title="Delete Branch">
+                                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                </svg>
+                                            </button>
+                                        }
+                                    </div>
+                                </td>
+                            </tr>
+                            
+                            @foreach (var child in branch.Children)
+                            {
+                                { RenderBranchRow(child); }
+                            }
+                        }
+                    }
+                    
+                    @foreach (var branch in Model.BranchTree)
                     {
-                        <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="px-6 py-4">
-                                <div class="text-sm font-medium text-gray-900">@branch.BranchName</div>
-                                <div class="text-sm text-gray-500">Created @branch.CreatedDate.ToString("MMM dd, yyyy")</div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="text-sm text-gray-900">@(branch.Admin?.Name ?? "-")</div>
-                                <div class="text-sm text-gray-500">@(branch.Admin?.Email ?? "-")</div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="flex flex-wrap gap-2">
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @(branch.BranchSetup?.EnableLocation == true ? "bg-[#a88641] bg-opacity-10 text-[#916f34]" : "bg-red-100 text-red-800")">
-                                        @(branch.BranchSetup?.EnableLocation == true ? "✓" : "✕") Location
-                                    </span>
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @(branch.BranchSetup?.EnableNetwork == true ? "bg-[#a88641] bg-opacity-10 text-[#916f34]" : "bg-red-100 text-red-800")">
-                                        @(branch.BranchSetup?.EnableNetwork == true ? "✓" : "✕") Network
-                                    </span>
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium @(branch.BranchSetup?.EnableBiometric == true ? "bg-[#a88641] bg-opacity-10 text-[#916f34]" : "bg-red-100 text-red-800")">
-                                        @(branch.BranchSetup?.EnableBiometric == true ? "✓" : "✕") Face
-                                    </span>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center space-x-3">
-                                    <a href="/Account/UpdateBranch/@branch.BranchId" class="text-[#a88641] hover:text-[#916f34]">
-                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                        </svg>
-                                    </a>
-                                    <a href="/Account/ManageBranch/@branch.BranchId" class="text-[#a88641] hover:text-[#916f34]">
-                                        <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        </svg>
-                                    </a>
-                                    <button onclick="showDeleteModal(@branch.BranchId, '@branch.BranchName')" class="text-red-600 hover:text-red-800">
-                                        <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
+                        { RenderBranchRow(branch); }
                     }
                 </tbody>
             </table>
@@ -275,161 +402,196 @@
     </div>
 </div>
 
-<!-- Update Branch Modal -->
-<div id="updateModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-xl max-w-2xl mx-4 w-full transform transition-all">
-        <div class="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-            <div class="flex items-center">
-                <h3 class="text-xl font-semibold text-gray-900">Update Branch</h3>
-                <span class="ml-2 bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded-full">HR</span>
-            </div>
-            <button type="button" onclick="closeUpdateModal()" class="text-gray-400 hover:text-gray-500 focus:outline-none">
-                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            </button>
-        </div>
-        <form id="updateBranchForm" class="px-6 py-4" onsubmit="updateBranch(event)">
-            <input type="hidden" id="updateBranchId" />
-            
-            <div class="space-y-6">
-                <!-- Branch Information Section -->
-                <div>
-                    <h4 class="text-lg font-medium text-gray-900 mb-4">Branch Information</h4>
-                    <div class="bg-gray-50 rounded-lg p-4 space-y-4">
-                        <div>
-                            <label for="updateBranchName" class="block text-sm font-medium text-gray-700">Branch Name</label>
-                            <input type="text" id="updateBranchName" name="branchName" 
-                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring-[#a88641] sm:text-sm" required />
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Admin Information Section -->
-                <div>
-                    <h4 class="text-lg font-medium text-gray-900 mb-4">Admin Information</h4>
-                    <div class="bg-gray-50 rounded-lg p-4 space-y-4">
-                        <div>
-                            <label for="updateAdminName" class="block text-sm font-medium text-gray-700">Admin Name</label>
-                            <input type="text" id="updateAdminName" name="adminName" 
-                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring-[#a88641] sm:text-sm" required />
-                        </div>
-                        <div>
-                            <label for="updateAdminEmail" class="block text-sm font-medium text-gray-700">Admin Email</label>
-                            <input type="email" id="updateAdminEmail" name="adminEmail" 
-                                   class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring-[#a88641] sm:text-sm" required />
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Features Section -->
-                <div>
-                    <h4 class="text-lg font-medium text-gray-900 mb-4">Features Configuration</h4>
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <p class="text-sm text-gray-500 mb-3">Enable or disable features for this branch. At least Location must be enabled.</p>
-                        <div class="space-y-3">
-                            <div class="flex items-center">
-                                <input type="checkbox" id="updateEnableLocation" name="enableLocation" 
-                                       class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
-                                <label for="updateEnableLocation" class="ml-3 block text-sm text-gray-700">
-                                    <span class="font-medium">Location</span>
-                                    <span class="text-gray-500 block text-xs">Enable location-based attendance tracking</span>
-                                </label>
-                            </div>
-                            <div class="flex items-center">
-                                <input type="checkbox" id="updateEnableNetwork" name="enableNetwork" 
-                                       class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
-                                <label for="updateEnableNetwork" class="ml-3 block text-sm text-gray-700">
-                                    <span class="font-medium">Network</span>
-                                    <span class="text-gray-500 block text-xs">Restrict attendance to specific network IPs</span>
-                                </label>
-                            </div>
-                            <div class="flex items-center">
-                                <input type="checkbox" id="updateEnableBiometric" name="enableBiometric" 
-                                       class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
-                                <label for="updateEnableBiometric" class="ml-3 block text-sm text-gray-700">
-                                    <span class="font-medium">Face Recognition</span>
-                                    <span class="text-gray-500 block text-xs">Enable facial recognition for attendance</span>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mt-6 border-t border-gray-200 pt-4 flex justify-end gap-3">
-                <button type="button" onclick="closeUpdateModal()" 
-                        class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
-                    Cancel
-                </button>
-                <button type="submit" 
-                        class="px-4 py-2 text-sm font-medium text-white bg-[#a88641] border border-transparent rounded-md shadow-sm hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
-                    Update Branch
-                </button>
-            </div>
-        </form>
-    </div>
-</div>
-
-@section Scripts {
-    <script>
-        function showDeleteModal(branchId, branchName) {
-            document.getElementById('branchIdToDelete').value = branchId;
-            document.getElementById('branchNameToDelete').textContent = branchName;
-            const modal = document.getElementById('deleteModal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
+<script src="~/js/notification.js"></script>
+<script>
+    // Branch hierarchy toggle functionality
+    function toggleBranch(branchId) {
+        const icon = document.getElementById(`toggle-icon-${branchId}`);
+        const childRows = document.querySelectorAll(`tr[data-branch-id]`);
+        let isExpanded = icon.classList.contains('rotate-90');
+        
+        // Toggle icon rotation
+        if (isExpanded) {
+            icon.classList.remove('rotate-90');
+        } else {
+            icon.classList.add('rotate-90');
         }
-
-        function closeDeleteModal() {
-            const modal = document.getElementById('deleteModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            document.getElementById('branchIdToDelete').value = '';
-            document.getElementById('branchNameToDelete').textContent = '';
-        }
-
-        function confirmDeleteBranch() {
-            const branchId = document.getElementById('branchIdToDelete').value;
-            const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        
+        // Find and toggle child rows
+        let currentLevel = parseInt(document.querySelector(`tr[data-branch-id="${branchId}"]`).dataset.level);
+        let targetRows = [];
+        let collecting = false;
+        
+        for (let row of childRows) {
+            let rowBranchId = parseInt(row.dataset.branchId);
+            let rowLevel = parseInt(row.dataset.level);
             
-            fetch('/Account/DeleteBranch', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': token
-                },
-                body: JSON.stringify(branchId)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showNotification('success', 'Branch deleted successfully');
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1500);
-                } else {
-                    showNotification('error', data.message || 'Failed to delete branch');
+            if (rowBranchId === branchId) {
+                collecting = true;
+                continue;
+            }
+            
+            if (collecting) {
+                if (rowLevel <= currentLevel) {
+                    break;
                 }
-                closeDeleteModal();
-            })
-            .catch(error => {
-                showNotification('error', 'An error occurred while deleting the branch');
-                closeDeleteModal();
-            });
+                if (rowLevel === currentLevel + 1) {
+                    targetRows.push(row);
+                }
+            }
         }
+        
+        // Toggle visibility of direct children
+        targetRows.forEach(row => {
+            if (isExpanded) {
+                row.classList.add('hidden');
+                // Also hide all nested children
+                hideAllChildrenOf(parseInt(row.dataset.branchId));
+            } else {
+                row.classList.remove('hidden');
+            }
+        });
+    }
+    
+    function toggleBranchMobile(branchId) {
+        const icon = document.getElementById(`toggle-icon-mobile-${branchId}`);
+        const childrenContainer = document.getElementById(`children-mobile-${branchId}`);
+        
+        if (childrenContainer.classList.contains('hidden')) {
+            childrenContainer.classList.remove('hidden');
+            icon.classList.add('rotate-90');
+        } else {
+            childrenContainer.classList.add('hidden');
+            icon.classList.remove('rotate-90');
+        }
+    }
+    
+    function hideAllChildrenOf(branchId) {
+        const allRows = document.querySelectorAll(`tr[data-branch-id]`);
+        const parentLevel = parseInt(document.querySelector(`tr[data-branch-id="${branchId}"]`).dataset.level);
+        
+        let collecting = false;
+        for (let row of allRows) {
+            let rowBranchId = parseInt(row.dataset.branchId);
+            let rowLevel = parseInt(row.dataset.level);
+            
+            if (rowBranchId === branchId) {
+                collecting = true;
+                continue;
+            }
+            
+            if (collecting) {
+                if (rowLevel <= parentLevel) {
+                    break;
+                }
+                row.classList.add('hidden');
+                // Reset any expanded states of nested children
+                const nestedIcon = document.getElementById(`toggle-icon-${rowBranchId}`);
+                if (nestedIcon) {
+                    nestedIcon.classList.remove('rotate-90');
+                }
+            }
+        }
+    }
+    
+    function expandAllBranches() {
+        const allIcons = document.querySelectorAll('[id^="toggle-icon-"]:not([id*="mobile"])');
+        const allRows = document.querySelectorAll('tr[data-branch-id]');
+        
+        allIcons.forEach(icon => {
+            icon.classList.add('rotate-90');
+        });
+        
+        allRows.forEach(row => {
+            row.classList.remove('hidden');
+        });
+        
+        // Mobile icons
+        const mobileIcons = document.querySelectorAll('[id^="toggle-icon-mobile-"]');
+        const mobileContainers = document.querySelectorAll('[id^="children-mobile-"]');
+        
+        mobileIcons.forEach(icon => {
+            icon.classList.add('rotate-90');
+        });
+        
+        mobileContainers.forEach(container => {
+            container.classList.remove('hidden');
+        });
+    }
+    
+    function collapseAllBranches() {
+        const allIcons = document.querySelectorAll('[id^="toggle-icon-"]:not([id*="mobile"])');
+        const childRows = document.querySelectorAll('tr[data-level]:not([data-level="0"])');
+        
+        allIcons.forEach(icon => {
+            icon.classList.remove('rotate-90');
+        });
+        
+        childRows.forEach(row => {
+            row.classList.add('hidden');
+        });
+        
+        // Mobile icons
+        const mobileIcons = document.querySelectorAll('[id^="toggle-icon-mobile-"]');
+        const mobileContainers = document.querySelectorAll('[id^="children-mobile-"]');
+        
+        mobileIcons.forEach(icon => {
+            icon.classList.remove('rotate-90');
+        });
+        
+        mobileContainers.forEach(container => {
+            container.classList.add('hidden');
+        });
+    }
 
-        function showNotification(type, message) {
-            const container = document.getElementById('notificationContainer');
-            const notification = document.createElement('div');
-            notification.className = `p-4 mb-4 rounded-md ${type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
-            notification.innerHTML = message;
-            
-            container.appendChild(notification);
-            
-            setTimeout(() => {
-                notification.remove();
-            }, 5000);
-        }
-    </script>
-}
+    function showDeleteModal(branchId, branchName) {
+        document.getElementById('branchIdToDelete').value = branchId;
+        document.getElementById('branchNameToDelete').textContent = branchName;
+        const modal = document.getElementById('deleteModal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeDeleteModal() {
+        const modal = document.getElementById('deleteModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        document.getElementById('branchIdToDelete').value = '';
+        document.getElementById('branchNameToDelete').textContent = '';
+    }
+
+    function confirmDeleteBranch() {
+        const branchId = document.getElementById('branchIdToDelete').value;
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        
+        fetch('/Account/DeleteBranch', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token
+            },
+            body: JSON.stringify(branchId)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Branch deleted successfully', 'success');
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            } else {
+                showNotification(data.message || 'Failed to delete branch', 'error');
+            }
+            closeDeleteModal();
+        })
+        .catch(error => {
+            showNotification('An error occurred while deleting the branch', 'error');
+            closeDeleteModal();
+        });
+    }
+    
+    // Initialize collapsed state on load
+    document.addEventListener('DOMContentLoaded', function() {
+        collapseAllBranches();
+    });
+</script>

@@ -1,128 +1,619 @@
 @model LetsCheckIn.Models.CreateBranchViewModel
 @{
-    ViewBag.Title = "Create Branch";
+    ViewData["Title"] = "Create Branch";
     Layout = "~/Views/Shared/_AuthenticatedLayout.cshtml";
 }
 
-<div id="notificationContainer" class="fixed top-4 right-4 z-50"></div>
+<!-- Notification Container -->
+<div id="notificationContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
-<div class="max-w-xl mx-auto mt-8">
-    <!-- Header with Branding -->
-    <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center">
-            <h2 class="text-2xl font-bold text-gray-900">Create Branch</h2>
-            <span class="ml-2 bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded-full">HR</span>
-        </div>
-        <div class="flex items-center">
-            <img src="/images/logo-black-icon.png" alt="Logo" class="h-7 w-7" />
-            <h1 class="text-lg font-bold text-gray-900 ml-2">Lets<span class="text-[#a88641]">Check</span>In</h1>
-        </div>
-    </div>
-
-    <!-- Form Card -->
-    <div class="bg-white p-6 rounded-lg shadow-md">
-        <form asp-action="CreateBranch" method="post" id="createBranchForm" novalidate>
-            <div class="space-y-6">
-                <!-- Branch Information -->
+<div class="min-h-screen bg-gray-50 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header with Breadcrumb -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
                 <div>
-                    <h4 class="text-lg font-medium text-gray-900 mb-4">Branch Information</h4>
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <div>
-                            <label asp-for="BranchName" class="block text-sm font-medium text-gray-700 mb-1">Branch Name</label>
-                            <input asp-for="BranchName" id="BranchName" 
-                                   class="form-input w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring-[#a88641] sm:text-sm" />
+                    <nav class="flex mb-4" aria-label="Breadcrumb">
+                        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                            <li class="inline-flex items-center">
+                                <a href="/Home/Index" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-[#a88641]">
+                                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"></path>
+                                    </svg>
+                                    Dashboard
+                                </a>
+                            </li>
+                            <li>
+                                <div class="flex items-center">
+                                    <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <a href="/Account/BranchList" class="ml-1 text-sm font-medium text-gray-700 hover:text-[#a88641] md:ml-2">Branch Management</a>
+                                </div>
+                            </li>
+                            <li aria-current="page">
+                                <div class="flex items-center">
+                                    <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Create Branch</span>
+                                </div>
+                            </li>
+                        </ol>
+                    </nav>
+                    <div class="flex items-center">
+                        <h1 class="text-3xl font-bold text-gray-900">Create Branch</h1>
+                        <span class="ml-3 px-3 py-1 text-xs font-medium bg-indigo-100 text-indigo-800 rounded-full">HR Management</span>
+                    </div>
+                    <p class="mt-2 text-gray-600">Set up a new branch location with administrative access and feature configuration</p>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <a href="/Account/BranchList" 
+                       class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
+                        <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back to List
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="bg-white shadow-xl rounded-lg overflow-hidden">
+            <div class="px-4 sm:px-6 py-6 border-b border-gray-200">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 bg-[#a88641] rounded-lg flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
                         </div>
                     </div>
-                </div>
-
-                <!-- Admin Information -->
-                <div>
-                    <h4 class="text-lg font-medium text-gray-900 mb-4">Admin Information</h4>
-                    <div class="bg-gray-50 rounded-lg p-4 space-y-4">
-                        <div>
-                            <label asp-for="AdminName" class="block text-sm font-medium text-gray-700 mb-1">Admin Name</label>
-                            <input asp-for="AdminName" id="AdminName" 
-                                   class="form-input w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring-[#a88641] sm:text-sm" />
-                        </div>
-                        <div>
-                            <label asp-for="AdminEmail" class="block text-sm font-medium text-gray-700 mb-1">Admin Email</label>
-                            <input asp-for="AdminEmail" id="AdminEmail" 
-                                   class="form-input w-full rounded-md border-gray-300 shadow-sm focus:border-[#a88641] focus:ring-[#a88641] sm:text-sm" />
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Features Configuration -->
-                <div>
-                    <h4 class="text-lg font-medium text-gray-900 mb-4">Features Configuration</h4>
-                    <div class="bg-gray-50 rounded-lg p-4">
-                        <p class="text-sm text-gray-500 mb-3">Enable or disable features for this branch. At least Location must be enabled.</p>
-                        <div class="space-y-3">
-                            <div class="flex items-center">
-                                <input asp-for="EnableLocation" type="checkbox" id="EnableLocation" 
-                                       class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
-                                <label for="EnableLocation" class="ml-3 block text-sm text-gray-700">
-                                    <span class="font-medium">Location</span>
-                                    <span class="text-gray-500 block text-xs">Enable location-based attendance tracking</span>
-                                </label>
-                            </div>
-                            <div class="flex items-center">
-                                <input asp-for="EnableNetwork" type="checkbox" id="EnableNetwork" 
-                                       class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
-                                <label for="EnableNetwork" class="ml-3 block text-sm text-gray-700">
-                                    <span class="font-medium">Network</span>
-                                    <span class="text-gray-500 block text-xs">Restrict attendance to specific network IPs</span>
-                                </label>
-                            </div>
-                            <div class="flex items-center">
-                                <input asp-for="EnableBiometric" type="checkbox" id="EnableBiometric" 
-                                       class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded" />
-                                <label for="EnableBiometric" class="ml-3 block text-sm text-gray-700">
-                                    <span class="font-medium">Face Recognition</span>
-                                    <span class="text-gray-500 block text-xs">Enable facial recognition for attendance</span>
-                                </label>
-                            </div>
-                        </div>
+                    <div class="ml-4">
+                        <h2 class="text-lg font-medium text-gray-900">Branch Setup</h2>
+                        <p class="text-sm text-gray-500">Configure new branch settings and administrative access</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Form Actions -->
-            <div class="mt-6 flex items-center justify-end gap-3">
-                <a href="/Account/BranchList" 
-                   class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
-                    Cancel
-                </a>
-                <button type="submit" 
-                        class="px-4 py-2 text-sm font-medium text-white bg-[#a88641] border border-transparent rounded-md shadow-sm hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors">
-                    Create Branch
-                </button>
+            <div class="px-4 sm:px-6 py-6">
+                <form asp-action="CreateBranch" method="post" id="createBranchForm" novalidate>
+                    <!-- Branch Information Section -->
+                    <div class="mb-8">
+                        <div class="mb-6">
+                            <div class="flex items-center mb-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-lg font-medium text-gray-900">Branch Information</h3>
+                                    <p class="text-sm text-gray-500">Set up the basic information for the new branch location</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 gap-6">
+                                <div>
+                                    <label asp-for="BranchName" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Branch Name <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input asp-for="BranchName" id="BranchName" 
+                                               required
+                                               class="block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm"
+                                               placeholder="Enter branch name" />
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Branch Type and Hierarchy Configuration -->
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <h4 class="text-sm font-medium text-blue-900 mb-3">Branch Type & Hierarchy</h4>
+                                    
+                                    <!-- Branch Type Selection -->
+                                    <div class="mb-4">
+                                        <label asp-for="BranchType" class="block text-sm font-medium text-gray-700 mb-2">
+                                            Branch Type <span class="text-red-500">*</span>
+                                        </label>
+                                        <div class="relative">
+                                            <select asp-for="BranchType" id="BranchType" 
+                                                    class="block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm"
+                                                    onchange="toggleParentBranchSelection()">
+                                                <option value="2">🏪 Single Branch</option>
+                                                <option value="1">🏢 Corporate Branch</option>
+                                            </select>
+                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-gray-600 mt-2">
+                                            <span class="font-medium">Single Branch:</span> Standalone branch that cannot have sub-branches<br>
+                                            <span class="font-medium">Corporate Branch:</span> Can have child branches and manage a hierarchy
+                                        </p>
+                                    </div>
+
+                                    <!-- Parent Branch Selection -->
+                                    <div id="parentBranchSection" class="hidden mb-4">
+                                        <label asp-for="ParentBranchId" class="block text-sm font-medium text-gray-700 mb-2">
+                                            Parent Branch
+                                            <span class="text-xs text-gray-500">(Optional for root branches)</span>
+                                        </label>
+                                        <div class="relative">
+                                            <select asp-for="ParentBranchId" id="ParentBranchId" 
+                                                    class="block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm">
+                                                <option value="">Select Parent Branch (Optional)</option>
+                                                @foreach (var parentBranch in Model.AvailableParentBranches)
+                                                {
+                                                    <option value="@parentBranch.Value">@parentBranch.Text</option>
+                                                }
+                                            </select>
+                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <p class="text-xs text-gray-600 mt-1">
+                                            Choose a parent branch to create this as a child branch. Leave empty for root level.
+                                        </p>
+                                    </div>
+
+                                    <!-- Hierarchy Preview -->
+                                    <div id="hierarchyPreview" class="hidden bg-white border border-blue-200 rounded-md p-3">
+                                        <div class="flex items-center">
+                                            <svg class="h-4 w-4 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            <div class="text-sm text-blue-800">
+                                                <span class="font-medium">Hierarchy Preview:</span>
+                                                <span id="hierarchyPath" class="ml-1"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Admin Information Section -->
+                    <div class="mb-8">
+                        <div class="mb-6">
+                            <div class="flex items-center mb-4">
+                                <div class="flex-shrink-0">
+                                    <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-lg font-medium text-gray-900">Admin Information</h3>
+                                    <p class="text-sm text-gray-500">Set up the administrator details for this branch</p>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label asp-for="AdminName" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Admin Name <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input asp-for="AdminName" id="AdminName" 
+                                               required
+                                               class="block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm"
+                                               placeholder="Enter admin name" />
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label asp-for="AdminEmail" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Admin Email <span class="text-red-500">*</span>
+                                    </label>
+                                    <div class="relative">
+                                        <input asp-for="AdminEmail" id="AdminEmail" 
+                                               type="email"
+                                               required
+                                               class="block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm"
+                                               placeholder="Enter admin email" />
+                                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Features Configuration Section -->
+                    <div class="mb-8">
+                        <div class="flex items-center mb-6">
+                            <div class="flex-shrink-0">
+                                <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                </div>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-lg font-medium text-gray-900">Features Configuration</h3>
+                                <p class="text-sm text-gray-500">Enable or disable branch-specific features</p>
+                            </div>
+                        </div>
+
+                        <!-- Important Notice -->
+                        <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-md">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                                    </svg>
+                                </div>
+                                <div class="ml-3">
+                                    <p class="text-sm text-amber-800">
+                                        <strong>Important:</strong> At least Location tracking must be enabled for the branch to function properly.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <!-- Location Tracking -->
+                            <div id="locationFeature" class="relative p-6 border-2 border-green-200 bg-green-50 rounded-lg hover:border-green-300 transition-all duration-200 cursor-pointer">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0">
+                                            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                                                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="ml-4">
+                                            <h4 class="text-sm font-medium text-gray-900">Location Tracking</h4>
+                                            <p class="text-xs text-gray-500">GPS-based attendance</p>
+                                        </div>
+                                    </div>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input asp-for="EnableLocation" type="checkbox" id="EnableLocation" 
+                                               checked
+                                               class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 ease-in-out" />
+                                        <label for="EnableLocation" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer transition-all duration-300 ease-in-out"></label>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <p class="text-xs text-gray-600">Required for basic branch functionality. Enables location-based check-ins and ensures employees are at the correct location.</p>
+                                </div>
+                            </div>
+
+                            <!-- Network Verification -->
+                            <div id="networkFeature" class="relative p-6 border-2 border-gray-200 bg-white rounded-lg hover:border-blue-300 transition-all duration-200 cursor-pointer">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0">
+                                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="ml-4">
+                                            <h4 class="text-sm font-medium text-gray-900">Network Verification</h4>
+                                            <p class="text-xs text-gray-500">WiFi-based validation</p>
+                                        </div>
+                                    </div>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input asp-for="EnableNetwork" type="checkbox" id="EnableNetwork" 
+                                               class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 ease-in-out" />
+                                        <label for="EnableNetwork" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer transition-all duration-300 ease-in-out"></label>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <p class="text-xs text-gray-600">Additional security layer that verifies employees are connected to the company network during check-in.</p>
+                                </div>
+                            </div>
+
+                            <!-- Biometric Authentication -->
+                            <div id="biometricFeature" class="relative p-6 border-2 border-gray-200 bg-white rounded-lg hover:border-purple-300 transition-all duration-200 cursor-pointer md:col-span-2 lg:col-span-1">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0">
+                                            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                                                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        <div class="ml-4">
+                                            <h4 class="text-sm font-medium text-gray-900">Biometric Authentication</h4>
+                                            <p class="text-xs text-gray-500">Face/fingerprint verification</p>
+                                        </div>
+                                    </div>
+                                    <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                        <input asp-for="EnableBiometric" type="checkbox" id="EnableBiometric" 
+                                               class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 ease-in-out" />
+                                        <label for="EnableBiometric" class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer transition-all duration-300 ease-in-out"></label>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <p class="text-xs text-gray-600">Highest security level with biometric verification for employee identity confirmation during attendance.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="px-4 sm:px-6 py-6 bg-gray-50 rounded-b-lg">
+                        <div class="flex flex-col sm:flex-row gap-3 sm:justify-end">
+                            <a href="/Account/BranchList" 
+                               class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-600 transition-colors min-h-[44px]">
+                                <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Cancel
+                            </a>
+                            <button type="submit" 
+                                    class="inline-flex items-center justify-center px-6 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-[#a88641] hover:bg-[#916f34] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#a88641] transition-colors min-h-[44px] shadow-sm">
+                                <svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                                </svg>
+                                Create Branch
+                            </button>
+                        </div>
+                    </div>
+                </form>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 
-<script src="~/js/notification.js"></script>
-<script>
-    document.getElementById('createBranchForm').addEventListener('submit', function(e) {
-        var errors = [];
-        var branchName = document.getElementById('BranchName').value.trim();
-        var adminName = document.getElementById('AdminName').value.trim();
-        var adminEmail = document.getElementById('AdminEmail').value.trim();
-        var enableLocation = document.getElementById('EnableLocation').checked;
-        var emailPattern = /^\S+@@\S+\.\S+$/;
+@section Scripts {
+    <script>
+        // Wait for DOM to be ready before accessing elements
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded, initializing create branch functionality...');
 
-        if (!branchName) errors.push('Branch Name is required.');
-        if (!adminName) errors.push('Admin Name is required.');
-        if (!adminEmail) errors.push('Admin Email is required.');
-        else if (!emailPattern.test(adminEmail)) errors.push('Admin Email is not valid.');
-        if (!enableLocation) errors.push('At least Location must be enabled.');
+            // Enhanced notification system with better styling and animations
+            function showNotification(type, message) {
+                const container = document.getElementById('notificationContainer');
+                if (!container) {
+                    console.error('Notification container not found');
+                    return;
+                }
+                
+                const notification = document.createElement('div');
+                const baseClasses = 'p-4 mb-4 rounded-md shadow-lg transform transition-all duration-300';
+                const typeClasses = type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 'bg-red-100 text-red-800 border border-red-200';
+                notification.className = baseClasses + ' ' + typeClasses;
+                
+                const successIcon = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>';
+                const errorIcon = '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>';
+                const iconPath = type === 'success' ? successIcon : errorIcon;
+                const buttonColor = type === 'success' ? 'green' : 'red';
+                
+                notification.innerHTML = 
+                    '<div class="flex items-center">' +
+                        '<svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">' +
+                            iconPath +
+                        '</svg>' +
+                        '<span class="text-sm font-medium">' + message + '</span>' +
+                        '<button onclick="this.parentElement.parentElement.remove()" class="ml-auto text-' + buttonColor + '-600 hover:text-' + buttonColor + '-800">' +
+                            '<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">' +
+                                '<path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>' +
+                            '</svg>' +
+                        '</button>' +
+                    '</div>';
+                
+                container.appendChild(notification);
+                
+                // Auto-remove after 5 seconds with smooth animation
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    notification.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.remove();
+                        }
+                    }, 300);
+                }, 5000);
+            }
 
-        if (errors.length > 0) {
-            e.preventDefault();
-            errors.forEach(function(msg) {
-                showNotification(msg, 'error');
+            // Add visual feedback for feature toggles
+            document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const container = this.closest('.relative');
+                    if (container) {
+                        if (this.checked) {
+                            container.classList.remove('border-gray-200', 'bg-white');
+                            container.classList.add('border-green-200', 'bg-green-50');
+                        } else {
+                            // Special handling for location feature - it must stay enabled
+                            if (this.id === 'EnableLocation') {
+                                this.checked = true;
+                                showNotification('error', 'Location tracking must remain enabled for branch functionality.');
+                                return;
+                            }
+                            container.classList.remove('border-green-200', 'bg-green-50');
+                            container.classList.add('border-gray-200', 'bg-white');
+                        }
+                    }
+                });
             });
+
+            // Enhanced form validation
+            const createBranchForm = document.getElementById('createBranchForm');
+            if (createBranchForm) {
+                createBranchForm.addEventListener('submit', function(e) {
+                    var errors = [];
+                    var branchName = document.getElementById('BranchName').value.trim();
+                    var adminName = document.getElementById('AdminName').value.trim();
+                    var adminEmail = document.getElementById('AdminEmail').value.trim();
+                    var enableLocation = document.getElementById('EnableLocation').checked;
+                    
+                    // Simple email validation without special symbols to avoid Razor parsing issues
+                    var atSymbol = String.fromCharCode(64);
+                    var isValidEmail = adminEmail.indexOf(atSymbol) > 0 && adminEmail.indexOf('.') > 0 && adminEmail.length > 5;
+
+                    if (!branchName) errors.push('Branch Name is required.');
+                    if (branchName.length < 2) errors.push('Branch Name must be at least 2 characters long.');
+                    if (!adminName) errors.push('Admin Name is required.');
+                    if (!adminEmail) errors.push('Admin Email is required.');
+                    else if (!isValidEmail) errors.push('Admin Email is not valid.');
+                    if (!enableLocation) errors.push('At least Location must be enabled.');
+
+                    if (errors.length > 0) {
+                        e.preventDefault();
+                        errors.forEach(function(msg) {
+                            showNotification('error', msg);
+                        });
+                        return;
+                    }
+
+                    // Show loading state
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    const originalBtnContent = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<svg class="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Creating...';
+                    submitBtn.disabled = true;
+                });
+            }
+
+            // Form field validation enhancements
+            const branchNameField = document.getElementById('BranchName');
+            const adminEmailField = document.getElementById('AdminEmail');
+            
+            if (branchNameField) {
+                branchNameField.addEventListener('blur', function() {
+                    if (this.value.trim().length < 2) {
+                        this.classList.add('border-red-300');
+                        this.classList.remove('border-gray-300');
+                    } else {
+                        this.classList.remove('border-red-300');
+                        this.classList.add('border-gray-300');
+                    }
+                });
+            }
+
+            if (adminEmailField) {
+                adminEmailField.addEventListener('blur', function() {
+                    var email = this.value.trim();
+                    var atSymbol = String.fromCharCode(64);
+                    var isValid = email.indexOf(atSymbol) > 0 && email.indexOf('.') > 0 && email.length > 5;
+                    if (!isValid) {
+                        this.classList.add('border-red-300');
+                        this.classList.remove('border-gray-300');
+                    } else {
+                        this.classList.remove('border-red-300');
+                        this.classList.add('border-gray-300');
+                    }
+                });
+            }
+
+            // Event listeners for dynamic updates
+            const parentSelect = document.getElementById('ParentBranchId');
+            const branchNameInput = document.getElementById('BranchName');
+            
+            if (parentSelect) {
+                parentSelect.addEventListener('change', updateHierarchyPreview);
+            }
+            if (branchNameInput) {
+                branchNameInput.addEventListener('input', updateHierarchyPreview);
+            }
+            
+            // Initialize on page load
+            toggleParentBranchSelection();
+            updateHierarchyPreview();
+            
+            console.log('Create branch functionality initialized successfully');
+        });
+
+        // Global functions accessible from HTML
+        function toggleParentBranchSelection() {
+            const branchType = document.getElementById('BranchType').value;
+            const parentSection = document.getElementById('parentBranchSection');
+            
+            // Show parent branch selection for all branch types
+            if (parentSection) {
+                parentSection.classList.remove('hidden');
+            }
+            updateHierarchyPreview();
         }
-    });
-</script>
+
+        function updateHierarchyPreview() {
+            const parentSelect = document.getElementById('ParentBranchId');
+            const branchNameInput = document.getElementById('BranchName');
+            const preview = document.getElementById('hierarchyPreview');
+            const hierarchyPath = document.getElementById('hierarchyPath');
+            
+            if (!parentSelect || !branchNameInput || !preview || !hierarchyPath) return;
+            
+            const selectedParent = parentSelect.options[parentSelect.selectedIndex];
+            const branchName = branchNameInput.value.trim() || '[New Branch]';
+            
+            if (selectedParent.value) {
+                const parentText = selectedParent.text;
+                hierarchyPath.textContent = parentText + ' > ' + branchName;
+                preview.classList.remove('hidden');
+            } else {
+                hierarchyPath.textContent = branchName + ' (Root Level)';
+                preview.classList.remove('hidden');
+            }
+        }
+    </script>
+
+    <style>
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #a88641;
+            background-color: #a88641;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #a88641;
+        }
+        
+        /* Custom animations for enhanced UX */
+        .feature-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Responsive grid improvements */
+        @@media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* Loading animation */
+        @@keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+    </style>
+}

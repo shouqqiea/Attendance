@@ -18,8 +18,7 @@ using System.Text;
 
 namespace LetsCheckIn.Controllers
 {
-    // ✅ Use permission-based authorization instead of hardcoded role names
-    // This allows any user with leave management permissions to access these actions
+    // ✅ Use permission-based authorization with hierarchy-aware security
     [DynamicPermissionAuthorize("leave.view")]
     public class LeaveManagementController : Controller
     {
@@ -28,14 +27,16 @@ namespace LetsCheckIn.Controllers
         private readonly IWebHostEnvironment _webHostEnvironment;
         private readonly ILogger<LeaveManagementController> _logger;
         private readonly IBranchAccessService _branchAccessService;
+        private readonly IHierarchySecurityService _hierarchySecurityService;
 
-        public LeaveManagementController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IWebHostEnvironment webHostEnvironment, ILogger<LeaveManagementController> logger, IBranchAccessService branchAccessService)
+        public LeaveManagementController(ApplicationDbContext context, UserManager<ApplicationUser> userManager, IWebHostEnvironment webHostEnvironment, ILogger<LeaveManagementController> logger, IBranchAccessService branchAccessService, IHierarchySecurityService hierarchySecurityService)
         {
             _context = context;
             _userManager = userManager;
             _webHostEnvironment = webHostEnvironment;
             _logger = logger;
             _branchAccessService = branchAccessService;
+            _hierarchySecurityService = hierarchySecurityService;
         }
 
         private async Task<StatusType> GetStatusTypeByNameAsync(string statusName)
@@ -374,17 +375,22 @@ namespace LetsCheckIn.Controllers
                     .FirstOrDefaultAsync(e => e.UserId == user.Id);
                 if (employee == null) return NotFound("Employee record not found");
 
-                // Get accessible branches based on user role and permissions
-                var accessibleBranches = await _branchAccessService.GetAccessibleBranchIdsAsync(user.Id);
+                // Log security event for leave approval access
+                await _hierarchySecurityService.LogSecurityEventAsync(user.Id, "LEAVE_APPROVAL_ACCESS", "Controller", 0,
+                    "Accessing leave approval dashboard");
 
-                // Get all leave requests from accessible branches
-                var allRequests = await _context.LeaveRequests
+                // Get all leave requests with hierarchy-aware filtering
+                var leaveRequestQuery = _context.LeaveRequests
                     .Include(lr => lr.LeaveType)
                     .Include(lr => lr.Status)
                     .Include(lr => lr.Employee)
                     .Include(lr => lr.ActionPerformer)
-                    .ThenInclude(ap => ap.Employee)
-                    .Where(lr => accessibleBranches.Contains(lr.Employee.BranchId))
+                    .ThenInclude(ap => ap.Employee);
+
+                // Apply hierarchy-aware filtering
+                var filteredQuery = await _hierarchySecurityService.FilterLeaveRequestsByAccessibleBranchesAsync(leaveRequestQuery, user.Id);
+                
+                var allRequests = await filteredQuery
                     .OrderByDescending(lr => lr.SubmissionDate)
                     .Select(lr => new LeaveRequestViewModel(lr.LeaveType.Name, lr.LeaveReason ?? "No reason provided")
                     {
@@ -411,8 +417,26 @@ namespace LetsCheckIn.Controllers
                     .OrderByDescending(g => g.Key)
                     .ToDictionary(g => g.Key, g => g.ToList());
 
+                // Get branch hierarchy information for context
+                var accessibleBranches = await _branchAccessService.GetAccessibleBranchIdsAsync(user.Id);
+                var accessibleBranchDetails = await _context.Branch
+                    .Where(b => accessibleBranches.Contains(b.BranchId) && b.DeletedDate == null)
+                    .Include(b => b.ParentBranch)
+                    .OrderBy(b => b.BranchName)
+                    .Select(b => new {
+                        b.BranchId,
+                        b.BranchName,
+                        b.BranchType,
+                        ParentBranchName = b.ParentBranch != null ? b.ParentBranch.BranchName : null,
+                        BranchTypeName = b.BranchType == 1 ? "Corporate" : "Single"
+                    })
+                    .ToListAsync();
+
                 ViewBag.PendingRequests = allRequests;
                 ViewBag.GroupedRequests = groupedRequests;
+                ViewBag.AccessibleBranches = accessibleBranchDetails;
+                ViewBag.CurrentUserBranchId = employee.BranchId;
+                
             return View();
             }
             catch (Exception ex)
@@ -516,6 +540,20 @@ namespace LetsCheckIn.Controllers
                     .OrderBy(name => name)
                     .ToListAsync();
 
+                // Get branch hierarchy information for context
+                var accessibleBranchDetails = await _context.Branch
+                    .Where(b => accessibleBranches.Contains(b.BranchId) && b.DeletedDate == null)
+                    .Include(b => b.ParentBranch)
+                    .OrderBy(b => b.BranchName)
+                    .Select(b => new {
+                        b.BranchId,
+                        b.BranchName,
+                        b.BranchType,
+                        ParentBranchName = b.ParentBranch != null ? b.ParentBranch.BranchName : null,
+                        BranchTypeName = b.BranchType == 1 ? "Corporate" : "Single"
+                    })
+                    .ToListAsync();
+
                 ViewBag.LeaveRequests = leaveRequests;
                 ViewBag.LeaveTypes = leaveTypes;
                 ViewBag.Statuses = statuses;
@@ -524,6 +562,8 @@ namespace LetsCheckIn.Controllers
                 ViewBag.SelectedStatus = status;
                 ViewBag.StartDate = startDate?.ToString("yyyy-MM-dd");
                 ViewBag.EndDate = endDate?.ToString("yyyy-MM-dd");
+                ViewBag.AccessibleBranches = accessibleBranchDetails;
+                ViewBag.CurrentUserBranchId = employee.BranchId;
 
                 return View();
             }

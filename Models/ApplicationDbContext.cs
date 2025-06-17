@@ -39,6 +39,9 @@ namespace LetsCheckIn.Models
         public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<BranchRole> BranchRoles { get; set; }
 
+        // Security and Audit tables
+        public DbSet<SecurityAuditLog> SecurityAuditLogs { get; set; }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -63,6 +66,9 @@ namespace LetsCheckIn.Models
             builder.Entity<RolePermission>().ToTable("RolePermissions");
             builder.Entity<BranchRole>().ToTable("BranchRoles");
 
+            // Configure security audit log table
+            builder.Entity<SecurityAuditLog>().ToTable("SecurityAuditLogs");
+
             // Employee - User (one-to-one)
             builder.Entity<Employee>()
                 .HasOne(e => e.User)
@@ -81,6 +87,23 @@ namespace LetsCheckIn.Models
                 .WithMany(a => a.Branches)
                 .HasForeignKey(b => b.AdminId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Branch Hierarchy - Parent-Child relationships
+            builder.Entity<Branch>()
+                .HasOne(b => b.ParentBranch)
+                .WithMany(b => b.ChildBranches)
+                .HasForeignKey(b => b.ParentBranchId)
+                .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete to preserve hierarchy
+
+            // Add index on ParentBranchId for performance
+            builder.Entity<Branch>()
+                .HasIndex(b => b.ParentBranchId)
+                .HasDatabaseName("IX_Branch_ParentBranchId");
+
+            // Add index on BranchType for filtering queries
+            builder.Entity<Branch>()
+                .HasIndex(b => b.BranchType)
+                .HasDatabaseName("IX_Branch_BranchType");
 
             // Branch - Employee (one-to-many)
             builder.Entity<Employee>()
@@ -234,6 +257,30 @@ namespace LetsCheckIn.Models
             builder.Entity<BranchRole>()
                 .HasIndex(br => new { br.BranchId, br.RoleId })
                 .IsUnique();
+
+            // SecurityAuditLog - User relationship
+            builder.Entity<SecurityAuditLog>()
+                .HasOne(sal => sal.User)
+                .WithMany()
+                .HasForeignKey(sal => sal.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Security audit log indexes for performance
+            builder.Entity<SecurityAuditLog>()
+                .HasIndex(sal => sal.UserId)
+                .HasDatabaseName("IX_SecurityAuditLog_UserId");
+
+            builder.Entity<SecurityAuditLog>()
+                .HasIndex(sal => sal.Timestamp)
+                .HasDatabaseName("IX_SecurityAuditLog_Timestamp");
+
+            builder.Entity<SecurityAuditLog>()
+                .HasIndex(sal => new { sal.Action, sal.ResourceType })
+                .HasDatabaseName("IX_SecurityAuditLog_Action_ResourceType");
+
+            builder.Entity<SecurityAuditLog>()
+                .HasIndex(sal => sal.IsSecurityViolation)
+                .HasDatabaseName("IX_SecurityAuditLog_IsSecurityViolation");
 
             // Seed initial status types
             builder.Entity<StatusType>().HasData(

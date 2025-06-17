@@ -38,11 +38,21 @@
                            placeholder="Search by role name or description">
                 </div>
                 <div>
-                    <label for="branchFilter" class="block text-sm font-medium text-gray-700 mb-2">Branch</label>
+                    <label for="branchFilter" class="block text-sm font-medium text-gray-700 mb-2">Branch Hierarchy</label>
                     <select id="branchFilter" 
                             class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm">
                         <option value="">All Branches</option>
-                        @if (branches != null)
+                        @if (ViewBag.BranchHierarchy != null)
+                        {
+                            @foreach (var branchItem in (List<LetsCheckIn.Models.BranchHierarchyItem>)ViewBag.BranchHierarchy)
+                            {
+                                var indent = new string('─', branchItem.Level * 2);
+                                var prefix = branchItem.Level > 0 ? indent + " " : "";
+                                var icon = branchItem.BranchType == 1 ? "🏢" : "🏪";
+                                <option value="@branchItem.BranchName">@prefix@icon @branchItem.BranchName</option>
+                            }
+                        }
+                        else if (branches != null)
                         {
                             foreach (var branch in branches)
                             {
@@ -108,9 +118,17 @@
                                     }
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full @(role.IsSystemRole ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800")">
-                                        @(role.IsSystemRole ? "System" : "Custom")
-                                    </span>
+                                    <div class="flex flex-col space-y-1">
+                                        <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full @(role.IsSystemRole ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800")">
+                                            @(role.IsSystemRole ? "System" : "Custom")
+                                        </span>
+                                        @if (role.IsParentOnly)
+                                        {
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                Parent-only
+                                            </span>
+                                        }
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <span class="text-sm text-gray-900">@role.UserCount</span>
@@ -166,9 +184,17 @@
                                     <p class="text-sm text-gray-500 mt-1">@role.Description</p>
                                 }
                             </div>
-                            <span class="px-2 py-1 text-xs font-semibold rounded-full @(role.IsSystemRole ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800")">
-                                @(role.IsSystemRole ? "System" : "Custom")
-                            </span>
+                            <div class="flex flex-col space-y-1">
+                                <span class="px-2 py-1 text-xs font-semibold rounded-full @(role.IsSystemRole ? "bg-blue-100 text-blue-800" : "bg-green-100 text-green-800")">
+                                    @(role.IsSystemRole ? "System" : "Custom")
+                                </span>
+                                @if (role.IsParentOnly)
+                                {
+                                    <span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                        Parent-only
+                                    </span>
+                                }
+                            </div>
                         </div>
 
                         <div class="space-y-2 mb-4">
@@ -278,6 +304,19 @@
                     <textarea id="description" name="Description" rows="3"
                               class="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-[#a88641] focus:border-[#a88641] sm:text-sm"
                               placeholder="Enter role description (optional)"></textarea>
+                </div>
+                <div>
+                    <div class="flex items-center">
+                        <input type="checkbox" id="isParentOnly" name="IsParentOnly" value="true"
+                               class="h-4 w-4 text-[#a88641] focus:ring-[#a88641] border-gray-300 rounded">
+                        <input type="hidden" name="IsParentOnly" value="false" />
+                        <label for="isParentOnly" class="ml-2 block text-sm text-gray-900">
+                            Parent-only role
+                        </label>
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">
+                        If checked, this role will only be available to parent accounts and will not be inherited by child accounts.
+                    </p>
                 </div>
             </div>
             <div class="flex flex-col sm:flex-row justify-end gap-3 pt-4">

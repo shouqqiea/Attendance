@@ -25,7 +25,7 @@ namespace LetsCheckIn.Helpers
         Task<List<Permission>> GetRolePermissionsAsync(int roleId);
         Task<bool> AssignPermissionToRoleAsync(int roleId, int permissionId, string assignedBy);
         Task<bool> RemovePermissionFromRoleAsync(int roleId, int permissionId);
-        Task<Role?> CreateRoleAsync(string roleName, string? description, string createdBy);
+        Task<Role?> CreateRoleAsync(string roleName, string? description, string createdBy, bool isParentOnly = false);
         Task<bool> UpdateRoleAsync(int roleId, string roleName, string? description, string updatedBy);
         Task<bool> DeleteRoleAsync(int roleId);
         Task<List<Permission>> GetAllPermissionsAsync();
@@ -33,6 +33,62 @@ namespace LetsCheckIn.Helpers
         Task MigrateExistingRolesAsync();
         Task MigrateExistingUsersAsync();
         Task<bool> UnassignRoleFromBranchAsync(int roleId, int branchId);
+
+        // New hierarchy-aware permission methods
+        /// <summary>
+        /// Checks if a user has permission for a specific branch, considering hierarchy access rules
+        /// </summary>
+        /// <param name="userId">User ID to check</param>
+        /// <param name="permissionName">Permission name to check</param>
+        /// <param name="branchId">Branch ID to check permission for</param>
+        /// <returns>True if user has permission for the branch</returns>
+        Task<bool> HasPermissionForBranchAsync(string userId, string permissionName, int branchId);
+
+        /// <summary>
+        /// Gets all roles available for branches accessible to the user (considering hierarchy)
+        /// </summary>
+        /// <param name="userId">User ID to get accessible roles for</param>
+        /// <returns>List of roles accessible to the user across all their accessible branches</returns>
+        Task<List<Role>> GetAccessibleBranchRolesAsync(string userId);
+
+        /// <summary>
+        /// Gets user permissions across all accessible branches
+        /// </summary>
+        /// <param name="userId">User ID to get permissions for</param>
+        /// <returns>List of unique permissions across all accessible branches</returns>
+        Task<List<string>> GetUserPermissionsAcrossHierarchyAsync(string userId);
+
+        /// <summary>
+        /// Checks if a role can be assigned to a specific branch based on branch hierarchy rules
+        /// </summary>
+        /// <param name="userId">User attempting to assign the role</param>
+        /// <param name="roleId">Role ID to assign</param>
+        /// <param name="targetBranchId">Target branch ID</param>
+        /// <returns>True if role can be assigned to the branch</returns>
+        Task<bool> CanAssignRoleToBranchAsync(string userId, int roleId, int targetBranchId);
+
+        /// <summary>
+        /// Inherits roles from parent account to child account (excluding parent-only roles)
+        /// </summary>
+        /// <param name="childUserId">Child user ID to inherit roles for</param>
+        /// <param name="parentBranchId">Parent branch ID to inherit roles from</param>
+        /// <param name="assignedBy">User performing the inheritance assignment</param>
+        /// <returns>True if roles were successfully inherited</returns>
+        Task<bool> InheritRolesFromParentAsync(string childUserId, int parentBranchId, string assignedBy);
+
+        /// <summary>
+        /// Gets inheritable roles from a parent branch (excludes parent-only roles)
+        /// </summary>
+        /// <param name="parentBranchId">Parent branch ID to get inheritable roles from</param>
+        /// <returns>List of roles that can be inherited by child accounts</returns>
+        Task<List<Role>> GetInheritableRolesFromParentAsync(int parentBranchId);
+
+        /// <summary>
+        /// Gets available roles for user creation in a branch (includes inherited roles from parent)
+        /// </summary>
+        /// <param name="branchId">Branch ID to get available roles for</param>
+        /// <returns>List of roles available for user creation in the branch</returns>
+        Task<List<Role>> GetAvailableRolesForUserCreationAsync(int branchId);
     }
 
     public class DynamicPermissionService : IDynamicPermissionService
@@ -131,6 +187,16 @@ namespace LetsCheckIn.Helpers
 
             if (targetBranchId.HasValue)
             {
+                // Check if target branch is a child branch
+                var targetBranch = await _context.Branch.FindAsync(targetBranchId.Value);
+                var isChildBranch = targetBranch?.ParentBranchId != null;
+
+                // If it's a child branch, exclude parent-only roles
+                if (isChildBranch)
+                {
+                    query = query.Where(r => !r.IsParentOnly);
+                }
+
                 query = query.Where(r => _context.BranchRoles
                     .Any(br => br.RoleId == r.RoleId && br.BranchId == targetBranchId));
             }
@@ -147,10 +213,22 @@ namespace LetsCheckIn.Helpers
 
         public async Task<List<Role>> GetRolesForBranchAsync(int branchId)
         {
-            return await _context.BranchRoles
+            // Check if this is a child branch
+            var branch = await _context.Branch.FindAsync(branchId);
+            var isChildBranch = branch?.ParentBranchId != null;
+
+            var query = _context.BranchRoles
                 .Where(br => br.BranchId == branchId && br.IsActive) // ✅ Only active branch role assignments
                 .Include(br => br.Role)
-                .Where(br => br.Role.IsActive && br.Role.DeletedDate == null) // ✅ Only active roles that aren't deleted
+                .Where(br => br.Role.IsActive && br.Role.DeletedDate == null); // ✅ Only active roles that aren't deleted
+
+            // If it's a child branch, exclude parent-only roles from the display
+            if (isChildBranch)
+            {
+                query = query.Where(br => !br.Role.IsParentOnly);
+            }
+
+            return await query
                 .Select(br => br.Role)
                 .ToListAsync();
         }
@@ -417,7 +495,7 @@ namespace LetsCheckIn.Helpers
             }
         }
 
-        public async Task<Role?> CreateRoleAsync(string roleName, string? description, string createdBy)
+        public async Task<Role?> CreateRoleAsync(string roleName, string? description, string createdBy, bool isParentOnly = false)
         {
             try
             {
@@ -428,7 +506,8 @@ namespace LetsCheckIn.Helpers
                     IsSystemRole = false,
                     IsActive = true,
                     CreatedDate = DateTime.UtcNow,
-                    CreatedBy = createdBy
+                    CreatedBy = createdBy,
+                    IsParentOnly = isParentOnly
                 };
 
                 _context.DynamicRoles.Add(role);
@@ -695,6 +774,284 @@ namespace LetsCheckIn.Helpers
             catch (Exception)
             {
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Checks if a user has permission for a specific branch, considering hierarchy access rules
+        /// </summary>
+        public async Task<bool> HasPermissionForBranchAsync(string userId, string permissionName, int branchId)
+        {
+            // First check if user has the permission at all
+            if (!await HasPermissionAsync(userId, permissionName))
+                return false;
+
+            // Get BranchAccessService to check if user can access the branch
+            var branchAccessService = new BranchAccessService(_context, _userManager, this);
+            return await branchAccessService.CanAccessBranchAsync(userId, branchId);
+        }
+
+        /// <summary>
+        /// Gets all roles available for branches accessible to the user (considering hierarchy)
+        /// </summary>
+        public async Task<List<Role>> GetAccessibleBranchRolesAsync(string userId)
+        {
+            // Get BranchAccessService to find accessible branches
+            var branchAccessService = new BranchAccessService(_context, _userManager, this);
+            var accessibleBranchIds = await branchAccessService.GetAccessibleBranchIdsAsync(userId);
+
+            if (!accessibleBranchIds.Any())
+                return new List<Role>();
+
+            // Get all roles assigned to accessible branches
+            var accessibleRoles = await _context.BranchRoles
+                .Where(br => accessibleBranchIds.Contains(br.BranchId) && br.IsActive)
+                .Include(br => br.Role)
+                .Where(br => br.Role.IsActive && br.Role.DeletedDate == null)
+                .Select(br => br.Role)
+                .Distinct()
+                .ToListAsync();
+
+            return accessibleRoles;
+        }
+
+        /// <summary>
+        /// Gets user permissions across all accessible branches
+        /// </summary>
+        public async Task<List<string>> GetUserPermissionsAcrossHierarchyAsync(string userId)
+        {
+            // Get user's direct permissions (these apply across all accessible branches)
+            var userPermissions = await GetUserPermissionsAsync(userId);
+
+            // Get additional permissions from accessible branch roles
+            var accessibleRoles = await GetAccessibleBranchRolesAsync(userId);
+            var accessibleRoleIds = accessibleRoles.Select(r => r.RoleId).ToList();
+
+            var additionalPermissions = await _context.RolePermissions
+                .Where(rp => accessibleRoleIds.Contains(rp.RoleId))
+                .Include(rp => rp.Permission)
+                .Where(rp => rp.Permission.IsActive)
+                .Select(rp => rp.Permission.PermissionName)
+                .ToListAsync();
+
+            // Combine and return unique permissions
+            var allPermissions = userPermissions.Concat(additionalPermissions).Distinct().ToList();
+            return allPermissions;
+        }
+
+        /// <summary>
+        /// Checks if a role can be assigned to a specific branch based on branch hierarchy rules
+        /// </summary>
+        public async Task<bool> CanAssignRoleToBranchAsync(string userId, int roleId, int targetBranchId)
+        {
+            // Check if user has permission to manage roles
+            if (!await CanManageRoleAsync(userId, roleId))
+                return false;
+
+            // Get BranchAccessService to check branch access
+            var branchAccessService = new BranchAccessService(_context, _userManager, this);
+            
+            // Check if user can access the target branch
+            if (!await branchAccessService.CanAccessBranchAsync(userId, targetBranchId))
+                return false;
+
+            // Get the role to check if it's a system role
+            var role = await _context.DynamicRoles.FindAsync(roleId);
+            if (role == null) return false;
+
+            // Additional validation for system roles
+            if (role.IsSystemRole)
+            {
+                var userRoles = await GetUserRolesAsync(userId);
+                var userRoleNames = userRoles.Select(r => r.RoleName).ToHashSet(StringComparer.OrdinalIgnoreCase);
+                
+                // Only SuperAdmin can assign SuperAdmin role, and only to SuperAdmin branch
+                if (role.RoleName == "SuperAdmin")
+                {
+                    if (!userRoleNames.Contains("SuperAdmin")) return false;
+                    
+                    var targetBranch = await _context.Branch.FindAsync(targetBranchId);
+                    return targetBranch?.IsSuperAdminBranch == true;
+                }
+                
+                // SuperAdmin can assign any other system role
+                if (userRoleNames.Contains("SuperAdmin"))
+                    return true;
+                
+                // Admin can only assign Employee and Manager roles
+                if (userRoleNames.Contains("Admin"))
+                    return role.RoleName == "Employee" || role.RoleName == "Manager";
+                
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Inherits roles from parent account to child account (excluding parent-only roles)
+        /// </summary>
+        public async Task<bool> InheritRolesFromParentAsync(string childUserId, int parentBranchId, string assignedBy)
+        {
+            try
+            {
+                // Get inheritable roles from parent branch
+                var inheritableRoles = await GetInheritableRolesFromParentAsync(parentBranchId);
+                
+                if (!inheritableRoles.Any())
+                {
+                    return true; // No roles to inherit, but not an error
+                }
+
+                // Get child's current branch
+                var childUser = await _userManager.FindByIdAsync(childUserId);
+                if (childUser?.BranchId == null)
+                {
+                    return false;
+                }
+
+                var childBranchId = childUser.BranchId.Value;
+
+                // First, ensure all inheritable roles are assigned to the child branch
+                foreach (var role in inheritableRoles)
+                {
+                    var branchRoleExists = await _context.BranchRoles
+                        .AnyAsync(br => br.RoleId == role.RoleId && br.BranchId == childBranchId && br.IsActive);
+
+                    if (!branchRoleExists)
+                    {
+                        var branchRole = new BranchRole
+                        {
+                            RoleId = role.RoleId,
+                            BranchId = childBranchId,
+                            AssignedBy = assignedBy,
+                            AssignedDate = DateTime.UtcNow,
+                            IsActive = true
+                        };
+
+                        _context.BranchRoles.Add(branchRole);
+                    }
+
+                    // Then assign the role to the child user
+                    var existingUserRole = await _context.DynamicUserRoles
+                        .FirstOrDefaultAsync(ur => ur.UserId == childUserId && ur.RoleId == role.RoleId);
+
+                    if (existingUserRole == null)
+                    {
+                        // Create new user role assignment
+                        var userRole = new DynamicUserRole
+                        {
+                            UserId = childUserId,
+                            RoleId = role.RoleId,
+                            AssignedBy = assignedBy,
+                            AssignedDate = DateTime.UtcNow,
+                            IsActive = true
+                        };
+
+                        _context.DynamicUserRoles.Add(userRole);
+                    }
+                    else if (!existingUserRole.IsActive)
+                    {
+                        // Reactivate existing assignment
+                        existingUserRole.IsActive = true;
+                        existingUserRole.AssignedBy = assignedBy;
+                        existingUserRole.AssignedDate = DateTime.UtcNow;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Gets inheritable roles from a parent branch (excludes parent-only roles)
+        /// </summary>
+        public async Task<List<Role>> GetInheritableRolesFromParentAsync(int parentBranchId)
+        {
+            try
+            {
+                // Get all active roles assigned to the parent branch that are not parent-only
+                var inheritableRoles = await _context.BranchRoles
+                    .Where(br => br.BranchId == parentBranchId && br.IsActive)
+                    .Include(br => br.Role)
+                    .Where(br => br.Role.IsActive && 
+                                br.Role.DeletedDate == null && 
+                                !br.Role.IsParentOnly) // Exclude parent-only roles
+                    .Select(br => br.Role)
+                    .Distinct()
+                    .ToListAsync();
+
+                return inheritableRoles;
+            }
+            catch (Exception)
+            {
+                return new List<Role>();
+            }
+        }
+
+        /// <summary>
+        /// Gets available roles for user creation in a branch (includes inherited roles from parent)
+        /// Also ensures that inheritable roles are assigned to the child branch if not already assigned
+        /// </summary>
+        public async Task<List<Role>> GetAvailableRolesForUserCreationAsync(int branchId)
+        {
+            try
+            {
+                // Get direct roles assigned to this branch
+                var directRoles = await GetRolesForBranchAsync(branchId);
+                
+                // Check if this is a child branch
+                var branch = await _context.Branch.FindAsync(branchId);
+                
+                if (branch?.ParentBranchId != null)
+                {
+                    // This is a child branch - get inheritable roles from parent
+                    var inheritableRoles = await GetInheritableRolesFromParentAsync(branch.ParentBranchId.Value);
+                    
+                    // Auto-assign inheritable roles to child branch if not already assigned
+                    foreach (var inheritableRole in inheritableRoles)
+                    {
+                        var existingAssignment = await _context.BranchRoles
+                            .FirstOrDefaultAsync(br => br.BranchId == branchId && 
+                                                      br.RoleId == inheritableRole.RoleId && 
+                                                      br.IsActive);
+                        
+                        if (existingAssignment == null)
+                        {
+                            // Auto-assign the inheritable role to the child branch
+                            var branchRole = new BranchRole
+                            {
+                                BranchId = branchId,
+                                RoleId = inheritableRole.RoleId,
+                                AssignedBy = "System-Inheritance",
+                                AssignedDate = DateTime.UtcNow,
+                                IsActive = true
+                            };
+                            
+                            _context.BranchRoles.Add(branchRole);
+                        }
+                    }
+                    
+                    // Save any new role assignments
+                    await _context.SaveChangesAsync();
+                    
+                    // Now get the updated direct roles (which should include the newly assigned ones)
+                    var updatedDirectRoles = await GetRolesForBranchAsync(branchId);
+                    
+                    return updatedDirectRoles;
+                }
+                
+                // For parent/root branches, just return direct roles
+                return directRoles;
+            }
+            catch (Exception)
+            {
+                return new List<Role>();
             }
         }
     }

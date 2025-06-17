@@ -49,10 +49,11 @@ namespace LetsCheckIn.Controllers
                 {
                     _logger.LogInformation($"Processing role {role.RoleName} (ID: {role.RoleId})");
                     
-                    // Get branches where this role is assigned
+                    // Get branches where this role is assigned, excluding deleted branches
                     var branchAssignments = await _context.BranchRoles
                         .Where(br => br.RoleId == role.RoleId && br.IsActive)
                         .Include(br => br.Branch)
+                        .Where(br => br.Branch.DeletedDate == null) // Filter out deleted branches
                         .ToListAsync();
                     
                     // Get all user assignments for this role
@@ -80,6 +81,7 @@ namespace LetsCheckIn.Controllers
                         RoleName = role.RoleName,
                         Description = role.Description,
                         IsSystemRole = role.IsSystemRole,
+                        IsParentOnly = role.IsParentOnly,
                         IsActive = role.IsActive,
                         CreatedDate = role.CreatedDate,
                         UserCount = userCount,
@@ -91,12 +93,37 @@ namespace LetsCheckIn.Controllers
                     });
                 }
 
+                // Get accessible branches with hierarchy information
+                var accessibleBranchIds = await _branchAccessService.GetAccessibleBranchIdsAsync(currentUser.Id);
                 var branches = await _context.Branch
-                    .Where(b => b.DeletedDate == null)
+                    .Where(b => b.DeletedDate == null && accessibleBranchIds.Contains(b.BranchId))
+                    .Include(b => b.ParentBranch)
                     .OrderBy(b => b.BranchName)
                     .ToListAsync();
 
-                ViewBag.Branches = branches;
+                // Create hierarchy items for better display
+                var hierarchyItems = branches.Select(b => new BranchHierarchyItem
+                {
+                    BranchId = b.BranchId,
+                    BranchName = b.BranchName,
+                    BranchType = b.BranchType,
+                    ParentBranchId = b.ParentBranchId,
+                    ParentBranchName = b.ParentBranch?.BranchName,
+                    IsSuperAdminBranch = b.IsSuperAdminBranch
+                }).ToList();
+
+                // Calculate hierarchy levels and paths for proper display
+                foreach (var item in hierarchyItems)
+                {
+                    item.Level = CalculateBranchLevel(item, hierarchyItems);
+                    item.HierarchyPath = BuildHierarchyPath(item, hierarchyItems);
+                }
+
+                // Sort by hierarchy path for proper display order
+                var sortedBranches = hierarchyItems.OrderBy(b => b.HierarchyPath).ToList();
+
+                ViewBag.Branches = branches; // Keep original for backward compatibility
+                ViewBag.BranchHierarchy = sortedBranches;
                 return View(roleViewModels);
             }
             catch (Exception ex)
@@ -140,7 +167,8 @@ namespace LetsCheckIn.Controllers
                 var role = await _permissionService.CreateRoleAsync(
                     model.RoleName, 
                     model.Description, 
-                    currentUser.Id);
+                    currentUser.Id,
+                    model.IsParentOnly);
 
                 if (role != null)
                 {
@@ -423,10 +451,11 @@ namespace LetsCheckIn.Controllers
                     _logger.LogInformation($"Assigned user: {user.FullName} ({user.Email}) - Assigned on: {user.AssignedDate}");
                 }
 
-                // Get branch assignments
+                // Get branches where this role is assigned, excluding deleted branches
                 var branchAssignments = await _context.BranchRoles
                     .Where(br => br.RoleId == id && br.IsActive)
                     .Include(br => br.Branch)
+                    .Where(br => br.Branch.DeletedDate == null) // Filter out deleted branches
                     .ToListAsync();
 
                 var viewModel = new RoleDetailsViewModel
@@ -726,6 +755,36 @@ namespace LetsCheckIn.Controllers
                 return Json(new { success = false, message = "An error occurred while deleting the role: " + ex.Message });
             }
         }
+
+        #region Helper Methods for Branch Hierarchy
+
+        /// <summary>
+        /// Calculates the hierarchy level of a branch (0 = root, 1 = first level child, etc.)
+        /// </summary>
+        private int CalculateBranchLevel(BranchHierarchyItem branch, List<BranchHierarchyItem> allBranches)
+        {
+            if (!branch.ParentBranchId.HasValue) return 0;
+
+            var parent = allBranches.FirstOrDefault(b => b.BranchId == branch.ParentBranchId.Value);
+            if (parent == null) return 0;
+
+            return 1 + CalculateBranchLevel(parent, allBranches);
+        }
+
+        /// <summary>
+        /// Builds the full hierarchy path for a branch (e.g., "Main > Region A > Branch 1")
+        /// </summary>
+        private string BuildHierarchyPath(BranchHierarchyItem branch, List<BranchHierarchyItem> allBranches)
+        {
+            if (!branch.ParentBranchId.HasValue) return branch.BranchName;
+
+            var parent = allBranches.FirstOrDefault(b => b.BranchId == branch.ParentBranchId.Value);
+            if (parent == null) return branch.BranchName;
+
+            return BuildHierarchyPath(parent, allBranches) + " > " + branch.BranchName;
+        }
+
+        #endregion
     }
 
     // View Models
@@ -735,6 +794,7 @@ namespace LetsCheckIn.Controllers
         public string RoleName { get; set; }
         public string? Description { get; set; }
         public bool IsSystemRole { get; set; }
+        public bool IsParentOnly { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedDate { get; set; }
         public int UserCount { get; set; }
@@ -756,6 +816,11 @@ namespace LetsCheckIn.Controllers
         
         [StringLength(500)]
         public string? Description { get; set; }
+        
+        /// <summary>
+        /// Indicates if this role should only be available to parent accounts (not inherited by children)
+        /// </summary>
+        public bool IsParentOnly { get; set; } = false;
     }
 
     public class RoleDetailsViewModel

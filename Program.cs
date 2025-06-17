@@ -63,6 +63,12 @@ builder.Services.AddScoped<IBranchAccessService, BranchAccessService>();
 // Register DynamicPermissionService - use the Helpers version which implements the correct interface
 builder.Services.AddScoped<LetsCheckIn.Helpers.IDynamicPermissionService, LetsCheckIn.Helpers.DynamicPermissionService>();
 
+// Register HierarchySecurityService for comprehensive security and audit logging
+builder.Services.AddScoped<LetsCheckIn.Helpers.IHierarchySecurityService, LetsCheckIn.Helpers.HierarchySecurityService>();
+
+// Register IHttpContextAccessor for security service
+builder.Services.AddHttpContextAccessor();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())

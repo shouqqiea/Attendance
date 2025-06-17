@@ -18,6 +18,11 @@ namespace LetsCheckIn.Models.db
         
         public bool IsSystemRole { get; set; } = false; // For built-in roles that cannot be deleted
         
+        /// <summary>
+        /// Indicates if this role is only for parent accounts and should not be inherited by child accounts
+        /// </summary>
+        public bool IsParentOnly { get; set; } = false;
+        
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
         
         public string? CreatedBy { get; set; }

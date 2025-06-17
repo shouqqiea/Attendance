@@ -45,11 +45,36 @@ namespace LetsCheckIn.Controllers
                 var accessibleBranchIds = await _branchAccessService.GetAccessibleBranchIdsAsync(currentUser.Id);
                 _logger.LogInformation($"User {currentUser.Id} has access to branches: {string.Join(", ", accessibleBranchIds)}");
 
-                // Get accessible branches for the filter dropdown
+                // Get accessible branches with hierarchy information for the filter dropdown
                 var branches = await _context.Branch
-                    .Where(b => accessibleBranchIds.Contains(b.BranchId))
+                    .Where(b => accessibleBranchIds.Contains(b.BranchId) && b.DeletedDate == null)
+                    .Include(b => b.ParentBranch)
+                    .OrderBy(b => b.BranchName)
                     .ToListAsync();
-                ViewBag.Branches = branches;
+
+                // Create hierarchy items for better display
+                var hierarchyItems = branches.Select(b => new BranchHierarchyItem
+                {
+                    BranchId = b.BranchId,
+                    BranchName = b.BranchName,
+                    BranchType = b.BranchType,
+                    ParentBranchId = b.ParentBranchId,
+                    ParentBranchName = b.ParentBranch?.BranchName,
+                    IsSuperAdminBranch = b.IsSuperAdminBranch
+                }).ToList();
+
+                // Calculate hierarchy levels and paths for proper display
+                foreach (var item in hierarchyItems)
+                {
+                    item.Level = CalculateBranchLevel(item, hierarchyItems);
+                    item.HierarchyPath = BuildHierarchyPath(item, hierarchyItems);
+                }
+
+                // Sort by hierarchy path for proper display order
+                var sortedBranches = hierarchyItems.OrderBy(b => b.HierarchyPath).ToList();
+
+                ViewBag.Branches = branches; // Keep original for backward compatibility
+                ViewBag.BranchHierarchy = sortedBranches;
 
                 // ✅ Roles will be loaded dynamically based on selected branch
                 // No need to pre-populate ViewBag.Roles as it causes confusion with unassigned roles
@@ -118,9 +143,36 @@ namespace LetsCheckIn.Controllers
                 if (currentUser == null) return Challenge();
 
                 var accessibleBranchIds = await _branchAccessService.GetAccessibleBranchIdsAsync(currentUser.Id);
-                ViewBag.Branches = await _context.Branch
-                    .Where(b => accessibleBranchIds.Contains(b.BranchId))
+                
+                // Get accessible branches with hierarchy information
+                var branches = await _context.Branch
+                    .Where(b => accessibleBranchIds.Contains(b.BranchId) && b.DeletedDate == null)
+                    .Include(b => b.ParentBranch)
+                    .OrderBy(b => b.BranchName)
                     .ToListAsync();
+
+                // Create hierarchy items for better display
+                var hierarchyItems = branches.Select(b => new BranchHierarchyItem
+                {
+                    BranchId = b.BranchId,
+                    BranchName = b.BranchName,
+                    BranchType = b.BranchType,
+                    ParentBranchId = b.ParentBranchId,
+                    ParentBranchName = b.ParentBranch?.BranchName
+                }).ToList();
+
+                // Calculate hierarchy levels and paths for proper display
+                foreach (var item in hierarchyItems)
+                {
+                    item.Level = CalculateBranchLevel(item, hierarchyItems);
+                    item.HierarchyPath = BuildHierarchyPath(item, hierarchyItems);
+                }
+
+                // Sort by hierarchy path for proper display order
+                var sortedBranches = hierarchyItems.OrderBy(b => b.HierarchyPath).ToList();
+
+                ViewBag.Branches = branches; // Keep original for backward compatibility
+                ViewBag.BranchHierarchy = sortedBranches;
 
                 // ✅ Roles will be loaded dynamically based on selected branch
                 // No need to pre-populate ViewBag.Roles as it causes confusion with unassigned roles
@@ -686,15 +738,31 @@ namespace LetsCheckIn.Controllers
                     return Json(new { success = false, message = "You don't have permission to access this branch" });
                 }
 
-                // ✅ Get only active dynamic roles that are assigned to the specific branch
-                var branchRoles = await _permissionService.GetRolesForBranchAsync(branchId);
+                // ✅ Get available roles for user creation (includes inherited roles from parent branch)
+                var branchRoles = await _permissionService.GetAvailableRolesForUserCreationAsync(branchId);
                 
                 var roles = branchRoles
                     .Select(r => new { value = r.RoleName, text = r.RoleName })
                     .OrderBy(r => r.text)
                     .ToList();
 
-                _logger.LogInformation($"Retrieved {roles.Count} active roles for branch {branchId}: [{string.Join(", ", roles.Select(r => r.text))}]");
+                // Enhanced logging for debugging role inheritance
+                var branch = await _context.Branch.FindAsync(branchId);
+                var isChildBranch = branch?.ParentBranchId != null;
+                
+                _logger.LogInformation($"Retrieved {roles.Count} available roles for branch {branchId} ({branch?.BranchName}):");
+                _logger.LogInformation($"  - Is child branch: {isChildBranch} (Parent ID: {branch?.ParentBranchId})");
+                _logger.LogInformation($"  - Available roles: [{string.Join(", ", roles.Select(r => r.text))}]");
+                
+                if (isChildBranch)
+                {
+                    var directRoles = await _permissionService.GetRolesForBranchAsync(branchId);
+                    var inheritableRoles = await _permissionService.GetInheritableRolesFromParentAsync(branch.ParentBranchId.Value);
+                    
+                    _logger.LogInformation($"  - Direct roles count: {directRoles.Count}");
+                    _logger.LogInformation($"  - Inheritable roles count: {inheritableRoles.Count}");
+                    _logger.LogInformation($"  - Inheritable role names: [{string.Join(", ", inheritableRoles.Select(r => r.RoleName))}]");
+                }
                 
                 return Json(new { success = true, roles = roles }, new JsonSerializerOptions
                 {
@@ -707,6 +775,36 @@ namespace LetsCheckIn.Controllers
                 return Json(new { success = false, message = "An error occurred while getting roles for the branch" });
             }
         }
+
+        #region Helper Methods for Branch Hierarchy
+
+        /// <summary>
+        /// Calculates the hierarchy level of a branch (0 = root, 1 = first level child, etc.)
+        /// </summary>
+        private int CalculateBranchLevel(BranchHierarchyItem branch, List<BranchHierarchyItem> allBranches)
+        {
+            if (!branch.ParentBranchId.HasValue) return 0;
+
+            var parent = allBranches.FirstOrDefault(b => b.BranchId == branch.ParentBranchId.Value);
+            if (parent == null) return 0;
+
+            return 1 + CalculateBranchLevel(parent, allBranches);
+        }
+
+        /// <summary>
+        /// Builds the full hierarchy path for a branch (e.g., "Main > Region A > Branch 1")
+        /// </summary>
+        private string BuildHierarchyPath(BranchHierarchyItem branch, List<BranchHierarchyItem> allBranches)
+        {
+            if (!branch.ParentBranchId.HasValue) return branch.BranchName;
+
+            var parent = allBranches.FirstOrDefault(b => b.BranchId == branch.ParentBranchId.Value);
+            if (parent == null) return branch.BranchName;
+
+            return BuildHierarchyPath(parent, allBranches) + " > " + branch.BranchName;
+        }
+
+        #endregion
     }
 
     public class UserManagementViewModel
